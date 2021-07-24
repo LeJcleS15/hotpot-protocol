@@ -3,10 +3,10 @@
 
 pragma solidity 0.6.12;
 
-    contract Bob {
+contract Bob {
     address public owner;
 
-    constructor() public {
+    constructor() {
         owner = msg.sender;
     }
 }
