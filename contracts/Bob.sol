@@ -6,7 +6,7 @@ pragma solidity 0.6.12;
 contract Bob {
     address public owner;
 
-    constructor() {
+    constructor() public {
         owner = msg.sender;
     }
 }
