@@ -1,0 +1,12 @@
+{
+  "files.associations": {
+    "*.sol": "solidity"
+  },
+  "editor.formatOnSave": true,
+  "solidity.compileUsingRemoteVersion": "v0.6.12+commit.27d51765",
+  "prettier.enableDebugLogs": true,
+  "prettier.insertPragma": true,
+  "prettier.requirePragma": true,
+  "prettier.resolveGlobalModules": true,
+  "prettier.useEditorConfig": false
+}
