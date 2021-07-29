@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.4",
+    "@openzeppelin/contracts-ethereum-package": "^3.0.0",
+    "@openzeppelin/hardhat-upgrades": "^1.9.0",
     "@truffle/hdwallet-provider": "^1.4.1",
     "hardhat": "^2.5.0",
     "hardhat-deploy": "^0.8.11",

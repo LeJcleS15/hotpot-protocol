@@ -2,12 +2,14 @@ pragma solidity 0.6.12;
 
 import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
 import {IHotpotConfig} from "./HotpotConfig.sol";
+import {IHotpotGate} from "./interfaces/IHotpotGate.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {fmt} from "./fmt.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
 abstract contract CrossBase is Ownable {
     function getEthCrossChainManager() internal view virtual returns (IEthCrossChainManager);
@@ -59,22 +61,14 @@ abstract contract CrossBase is Ownable {
     }
 }
 
-contract HotpotGate is CrossBase, ERC20 {
+contract HotpotGate is CrossBase, ERC20, IHotpotGate {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     enum CrossStatus {
         NONE,
         PENDING,
         COMPLETED,
         REVERTED
-    }
-    struct CrossTransferData {
-        uint256 crossId;
-        address from;
-        address to;
-        uint256 metaAmount;
-        uint256 metaFee;
-        uint256 feeFlux;
-        CrossStatus status;
     }
     IHotpotConfig public config;
     uint64 public remotePolyId;
@@ -85,8 +79,12 @@ contract HotpotGate is CrossBase, ERC20 {
     uint256 public nextCrossId;
     uint256 public fee;
     uint256 public constant FEE_DENOM = 10000;
-    mapping(uint256 => CrossTransferData) public crossHistory;
     mapping(uint256 => CrossStatus) public existedIds;
+
+    modifier onlyRouter() {
+        require(config.isRouter(msg.sender), "onlyRouter");
+        _;
+    }
 
     constructor(
         IHotpotConfig _config,
@@ -125,39 +123,6 @@ contract HotpotGate is CrossBase, ERC20 {
         ERC20._transfer(from, to, metaAmount);
     }
 
-    function _crossReceipt(uint256 crossId, bool success) private {
-        CrossBase.crossTo(remotePolyId, remoteGateway, "onCrossReceipt", abi.encode(crossId, success));
-        // emit event
-    }
-
-    function _onCrossReceipt(uint256 crossId, bool success) private returns (bool) {
-        CrossTransferData storage crossData = crossHistory[crossId];
-        require(crossData.status == CrossStatus.PENDING, "invalid crossId");
-        uint256 tokenAmount = metaToNative(crossData.metaAmount);
-        if (success) {
-            vault.depositFund(tokenAmount); // keep fee in gate
-            crossData.status = CrossStatus.COMPLETED;
-        } else {
-            uint256 _fee = crossData.metaFee > 0 ? metaToNative(crossData.metaFee) : 0;
-            token.transfer(crossData.from, tokenAmount + _fee);
-            if (crossData.feeFlux > 0) config.FLUX().transfer(crossData.from, crossData.feeFlux);
-            crossData.status = CrossStatus.REVERTED;
-        }
-        return true;
-    }
-
-    function onCrossReceipt(
-        bytes calldata data,
-        bytes calldata fromAddress,
-        uint64 fromPolyId
-    ) external onlyManagerContract returns (bool) {
-        address from = bytesToAddress(fromAddress);
-        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
-        (uint256 crossId, bool success) = abi.decode(data, (uint256, bool));
-        return _onCrossReceipt(crossId, success);
-    }
-
     function nativeToMeta(uint256 amount) private returns (uint256) {
         uint8 tokenDecimals = token.decimals();
         uint8 metaDecimals = ERC20.decimals();
@@ -181,19 +146,28 @@ contract HotpotGate is CrossBase, ERC20 {
         uint256 crossId = nextCrossId++;
         uint256 metaFee = nativeToMeta(_fee);
         uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
-        crossHistory[crossId] = CrossTransferData({crossId: crossId, from: msg.sender, to: to, metaAmount: metaAmount, metaFee: metaFee, feeFlux: _feeFlux, status: CrossStatus.PENDING});
         bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux);
         CrossBase.crossTo(remotePolyId, remoteGateway, "onCrossTransfer", txData);
         logCrossTransfer(msg.sender, address(uint160(remotePolyId)), metaAmount);
+    }
+
+    function crossRebalance(address to, uint256 amount) external override onlyRouter {
+        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
+        token.transferFrom(msg.sender, address(this), amount);
+        vault.depositFund(amount);
+        int256 gap = vault.gateAmount(address(this));
+        require(gap < 0 && gap.add(int256(amount)) <= 0, "invalid amount");
+        _crossTransfer(to, amount, 0, 0);
     }
 
     function crossTransfer(
         address to,
         uint256 amount,
         bool useFlux
-    ) external {
+    ) external override onlyRouter {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         token.transferFrom(msg.sender, address(this), amount);
+        vault.depositFund(amount);
         uint256 _fee = amount.mul(fee).div(FEE_DENOM);
         uint256 _feeFlux;
         if (useFlux) {
@@ -210,9 +184,9 @@ contract HotpotGate is CrossBase, ERC20 {
         uint256 metaAmount,
         uint256 _fee,
         uint256 _feeFlux
-    ) private returns (bool) {
+    ) private {
         uint256 tokenAmount = metaToNative(metaAmount);
-        return vault.withdrawFund(to, tokenAmount, _fee, _feeFlux);
+        vault.withdrawFund(to, tokenAmount, _fee, _feeFlux);
     }
 
     function onCrossTransfer(
@@ -226,8 +200,7 @@ contract HotpotGate is CrossBase, ERC20 {
         (uint256 crossId, address to, uint256 metaAmount, uint256 _fee, uint256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, uint256));
         require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
         logCrossTransfer(address(uint160(fromPolyId)), to, metaAmount);
-        bool result = _onCrossTransfer(to, metaAmount, _fee, _feeFlux);
-        _crossReceipt(crossId, result);
+        _onCrossTransfer(to, metaAmount, _fee, _feeFlux);
         return true;
     }
 }
