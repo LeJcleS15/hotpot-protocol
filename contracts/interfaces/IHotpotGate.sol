@@ -1,6 +1,8 @@
 pragma solidity 0.6.12;
 
 interface IHotpotGate {
+    function remotePolyId() external view returns (uint64);
+
     function crossRebalanceFrom(
         address from,
         address to,

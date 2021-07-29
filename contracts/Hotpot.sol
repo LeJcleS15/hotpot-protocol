@@ -71,7 +71,7 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         REVERTED
     }
     IHotpotConfig public config;
-    uint64 public remotePolyId;
+    uint64 public override remotePolyId;
     address public remoteGateway;
     CrossStatus public bindStatus;
     IVault public vault;
