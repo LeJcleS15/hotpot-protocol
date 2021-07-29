@@ -81,6 +81,15 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
     uint256 public constant FEE_DENOM = 10000;
     mapping(uint256 => CrossStatus) public existedIds;
 
+    struct PendingTransfer {
+        uint256 crossId;
+        address to;
+        uint256 metaAmount;
+        uint256 fee;
+        uint256 feeFlux;
+    }
+    PendingTransfer[] public pending;
+
     modifier onlyRouter() {
         require(config.isRouter(msg.sender), "onlyRouter");
         _;
@@ -151,29 +160,34 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         logCrossTransfer(msg.sender, address(uint160(remotePolyId)), metaAmount);
     }
 
-    function crossRebalance(address to, uint256 amount) external override onlyRouter {
+    function crossRebalanceFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external override onlyRouter {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        token.transferFrom(msg.sender, address(this), amount);
-        vault.depositFund(amount);
+        require(config.isBalancer(from), "onlyBalancer");
+        vault.depositFund(from, amount);
         int256 gap = vault.gateAmount(address(this));
         require(gap < 0 && gap.add(int256(amount)) <= 0, "invalid amount");
         _crossTransfer(to, amount, 0, 0);
     }
 
-    function crossTransfer(
+    function crossTransferFrom(
+        address from,
         address to,
         uint256 amount,
-        bool useFlux
+        uint256 maxFluxFee
     ) external override onlyRouter {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        token.transferFrom(msg.sender, address(this), amount);
-        vault.depositFund(amount);
+        vault.depositFund(from, amount);
         uint256 _fee = amount.mul(fee).div(FEE_DENOM);
         uint256 _feeFlux;
-        if (useFlux) {
-            _feeFlux = config.feeFlux(_fee);
+        if (maxFluxFee > 0) {
+            _feeFlux = config.feeFlux(address(token), _fee);
+            require(_feeFlux <= maxFluxFee, "execeed flux fee limit!");
             ERC20 flux = config.FLUX();
-            flux.transferFrom(msg.sender, address(this), _feeFlux);
+            flux.transferFrom(from, address(this), _feeFlux);
             _fee = 0;
         }
         _crossTransfer(to, amount, _fee, _feeFlux);
@@ -184,9 +198,9 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         uint256 metaAmount,
         uint256 _fee,
         uint256 _feeFlux
-    ) private {
+    ) private returns (bool) {
         uint256 tokenAmount = metaToNative(metaAmount);
-        vault.withdrawFund(to, tokenAmount, _fee, _feeFlux);
+        return vault.withdrawFund(to, tokenAmount, _fee, _feeFlux);
     }
 
     function onCrossTransfer(
@@ -199,8 +213,31 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
         (uint256 crossId, address to, uint256 metaAmount, uint256 _fee, uint256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, uint256));
         require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
+
         logCrossTransfer(address(uint160(fromPolyId)), to, metaAmount);
-        _onCrossTransfer(to, metaAmount, _fee, _feeFlux);
+        if (_onCrossTransfer(to, metaAmount, _fee, _feeFlux)) {
+            existedIds[crossId] = CrossStatus.COMPLETED;
+        } else {
+            existedIds[crossId] = CrossStatus.PENDING;
+            pending.push(PendingTransfer(crossId, to, metaAmount, _fee, _feeFlux));
+        }
         return true;
+    }
+
+    function pendingLength() external view returns (uint256) {
+        return pending.length;
+    }
+
+    function dealPending(uint256 count) external {
+        while (count-- < 0) {
+            PendingTransfer storage _pending = pending[pending.length - 1];
+            if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux)) return;
+            existedIds[_pending.crossId] = CrossStatus.COMPLETED;
+            pending.pop();
+        }
+    }
+
+    function withdraw(IERC20 _token, uint256 amount) external onlyOwner {
+        _token.transfer(msg.sender, amount);
     }
 }

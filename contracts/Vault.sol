@@ -46,11 +46,15 @@ abstract contract RewardDistributor {
 }
 
 interface FToken {
-    function requestAmount(address to, uint256 amount) external returns (bool);
+    function borrowToken(
+        address token,
+        address to,
+        uint256 amount
+    ) external returns (bool);
 
     function totalDebt() external view returns (uint256);
 
-    function repay(uint256 amount) external;
+    function repayToken(address token, uint256 amount) external;
 }
 
 contract Vault is Ownable, ERC20, IVault, RewardDistributor {
@@ -59,11 +63,6 @@ contract Vault is Ownable, ERC20, IVault, RewardDistributor {
     IHotpotConfig public config;
     mapping(address => int256) public override gateAmount;
     uint256 public totalToken;
-    struct PendingLog {
-        address to;
-        uint256 amount;
-    }
-    PendingLog[] public logs;
 
     constructor(
         IHotpotConfig _config,
@@ -85,24 +84,22 @@ contract Vault is Ownable, ERC20, IVault, RewardDistributor {
         _;
     }
 
-    function dealPendingLogs(uint256 count) external {
-        while (count-- > 0) {
-            PendingLog storage log = logs[logs.length - 1];
-            token.transfer(log.to, log.amount);
-            logs.pop();
-        }
-    }
-
-    function logPending(address to, uint256 amount) private {
-        logs.push(PendingLog(to, amount));
-    }
-
-    function pendingLogsCount() external view returns (uint256) {
-        return logs.length;
-    }
-
     function rewardOut(address to, uint256 fluxReward) internal override(RewardDistributor) {
         config.FLUX().transfer(to, fluxReward);
+    }
+
+    function borrowToken(
+        FToken _ftoken,
+        address to,
+        uint256 amount
+    ) private returns (bool) {
+        if (address(_ftoken) != address(0)) {
+            uint256 before = token.balanceOf(to);
+            // should tranfer token to user
+            address(_ftoken).call(abi.encodeWithSelector(ftoken.borrowToken.selector, address(token), to, amount));
+            return token.balanceOf(to) == before.add(amount);
+        }
+        return false;
     }
 
     function withdrawFund(
@@ -110,41 +107,41 @@ contract Vault is Ownable, ERC20, IVault, RewardDistributor {
         uint256 amount,
         uint256 fee,
         uint256 feeFlux
-    ) external override onlyBound {
+    ) external override onlyBound returns (bool) {
         gateAmount[msg.sender] = gateAmount[msg.sender].sub(int256(amount));
         uint256 cash = token.balanceOf(address(this));
         if (cash >= amount) {
             token.transfer(to, amount);
         } else {
             uint256 diff = cash - amount;
-            if (address(ftoken) != address(0) && ftoken.requestAmount(to, diff)) {
+            if (borrowToken(ftoken, to, diff)) {
                 //_deposit(address(ftoken), diff);
                 if (cash > 0) token.transfer(to, cash);
             } else {
-                logPending(to, amount);
-                //_deposit(to, amount);
+                return false;
             }
         }
         if (fee > 0) totalToken = totalToken.add(fee);
         if (feeFlux > 0) RewardDistributor.updateIncome(feeFlux, ERC20.totalSupply());
+        return true;
     }
 
-    function repayBorrow() public {
+    function repayToken() public {
         if (address(ftoken) == address(0)) return;
         uint256 debt = ftoken.totalDebt();
         uint256 cash = token.balanceOf(address(this));
         uint256 repayAmount = Math.min(debt, cash);
         if (repayAmount > 0) {
             token.approve(address(ftoken), repayAmount);
-            ftoken.repay(repayAmount);
+            ftoken.repayToken(address(token), repayAmount);
             // require(ftoken.totalDebt() == debt.sub(repayAmount), "repay failed");
         }
     }
 
-    function depositFund(uint256 amount) external override onlyBound {
-        token.transferFrom(msg.sender, address(this), amount);
+    function depositFund(address from, uint256 amount) external override onlyBound {
+        token.transferFrom(from, address(this), amount);
         gateAmount[msg.sender] = gateAmount[msg.sender].add(int256(amount));
-        repayBorrow();
+        repayToken();
     }
 
     function _beforeTokenTransfer(
@@ -156,22 +153,24 @@ contract Vault is Ownable, ERC20, IVault, RewardDistributor {
         if (to != address(0)) RewardDistributor.updateReward(to, ERC20.balanceOf(to));
     }
 
-    function _deposit(address to, uint256 amount) private {
-        token.transferFrom(to, address(this), amount);
-        uint256 share = ERC20.totalSupply().mul(amount).div(totalToken);
+    function _deposit(address user, uint256 amount) private {
+        token.transferFrom(user, address(this), amount);
+        uint256 totalSupply = ERC20.totalSupply();
+        uint256 share = totalToken == 0 || totalSupply == 0 ? amount : totalSupply.mul(amount).div(totalToken);
         totalToken = totalToken.add(amount);
-        ERC20._mint(to, share);
-        repayBorrow();
+        ERC20._mint(user, share);
+        repayToken();
     }
 
     function deposit(uint256 amount) external {
         _deposit(msg.sender, amount);
     }
 
-    function _withdraw(address to, uint256 share) private {
+    function _withdraw(address user, uint256 share) private {
         uint256 amount = totalToken.mul(share).div(ERC20.totalSupply());
-        ERC20._burn(to, share);
-        token.transfer(to, amount);
+        totalToken = totalToken.sub(amount);
+        ERC20._burn(user, share);
+        token.transfer(user, amount);
     }
 
     function withdraw(uint256 share) external {

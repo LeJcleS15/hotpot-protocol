@@ -1,11 +1,16 @@
 pragma solidity 0.6.12;
 
 interface IHotpotGate {
-    function crossRebalance(address to, uint256 amount) external;
+    function crossRebalanceFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external;
 
-    function crossTransfer(
+    function crossTransferFrom(
+        address from,
         address to,
         uint256 amount,
-        bool useFlux
+        uint256 maxFluxFee
     ) external;
 }

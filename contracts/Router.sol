@@ -20,9 +20,17 @@ contract HotpotRouter is Ownable {
         IHotpotGate gate,
         address to,
         uint256 amount,
-        bool useFlux
-    ) external {
-        gate.crossTransfer(to, amount, useFlux);
+        uint256 maxFluxFee
+    ) external payable {
+        gate.crossTransferFrom(msg.sender, to, amount, maxFluxFee);
+    }
+
+    function crossRebalance(
+        IHotpotGate gate,
+        address to,
+        uint256 amount
+    ) external payable {
+        gate.crossRebalanceFrom(msg.sender, to, amount);
     }
 
     function setFeeCollector(address collector) external onlyOwner {
@@ -30,12 +38,8 @@ contract HotpotRouter is Ownable {
         feeCollector = collector;
     }
 
-    function extractFee(address token) external {
+    function extractFee(address) external {
         require(msg.sender == feeCollector, "!feeCollector");
-        if (token == address(0)) {
-            payable(msg.sender).transfer(address(this).balance);
-        } else {
-            IERC20(token).safeTransfer(feeCollector, IERC20(token).balanceOf(address(this)));
-        }
+        payable(msg.sender).transfer(address(this).balance);
     }
 }

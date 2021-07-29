@@ -10,9 +10,9 @@ interface IVault {
         uint256 amount,
         uint256 fee,
         uint256 feeFlux
-    ) external;
+    ) external returns (bool);
 
-    function depositFund(uint256 amount) external;
+    function depositFund(address from, uint256 amount) external;
 
     function gateAmount(address) external view returns (int256);
 }
