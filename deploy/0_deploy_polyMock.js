@@ -1,7 +1,7 @@
 const record = require('../helps/record');
 
 const func = async function (hre) {
-  const { deployments,ethers } = hre;
+  const { deployments, ethers } = hre;
   const { deploy } = deployments;
 
   const accounts = await ethers.getSigners();

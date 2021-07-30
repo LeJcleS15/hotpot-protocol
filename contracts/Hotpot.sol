@@ -6,16 +6,17 @@ import {IHotpotGate} from "./interfaces/IHotpotGate.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {fmt} from "./fmt.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-abstract contract CrossBase is Ownable {
+abstract contract CrossBase {
     function getEthCrossChainManager() internal view virtual returns (IEthCrossChainManager);
 
     modifier onlyManagerContract() {
-        require(_msgSender() == address(getEthCrossChainManager()), "only EthCrossChainManagerContract");
+        require(msg.sender == address(getEthCrossChainManager()), "only EthCrossChainManagerContract");
         _;
     }
 
@@ -61,7 +62,7 @@ abstract contract CrossBase is Ownable {
     }
 }
 
-contract HotpotGate is CrossBase, ERC20, IHotpotGate {
+contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     enum CrossStatus {
@@ -80,6 +81,7 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
     uint256 public fee;
     uint256 public constant FEE_DENOM = 10000;
     mapping(uint256 => CrossStatus) public existedIds;
+    uint8 public constant decimals = 18;
 
     struct PendingTransfer {
         uint256 crossId;
@@ -95,17 +97,12 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         _;
     }
 
-    constructor(
-        IHotpotConfig _config,
-        IVault _vault,
-        string memory _name,
-        string memory _symbol
-    ) public ERC20(_name, _symbol) {
+    function initialize(IHotpotConfig _config, IVault _vault) external initializer {
+        OwnableUpgradeSafe.__Ownable_init();
         config = _config;
         vault = _vault;
         token = _vault.token();
         token.approve(address(vault), type(uint256).max);
-        _setupDecimals(18);
         fee = 30;
     }
 
@@ -123,30 +120,22 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         fee = _fee;
     }
 
-    function logCrossTransfer(
-        address from,
-        address to,
-        uint256 metaAmount
-    ) private {
-        ERC20._mint(from, metaAmount);
-        ERC20._transfer(from, to, metaAmount);
-    }
-
     function nativeToMeta(uint256 amount) private returns (uint256) {
         uint8 tokenDecimals = token.decimals();
-        uint8 metaDecimals = ERC20.decimals();
+        uint8 metaDecimals = decimals;
         require(tokenDecimals <= metaDecimals, "HotpotGate::unsupported decimals");
         return amount.mul(10**uint256(metaDecimals - tokenDecimals));
     }
 
     function metaToNative(uint256 amount) private returns (uint256) {
         uint8 tokenDecimals = token.decimals();
-        uint8 metaDecimals = ERC20.decimals();
+        uint8 metaDecimals = decimals;
         require(tokenDecimals <= metaDecimals, "HotpotGate::unsupported decimals");
         return amount.div(10**uint256(metaDecimals - tokenDecimals));
     }
 
     function _crossTransfer(
+        address from,
         address to,
         uint256 amount,
         uint256 _fee,
@@ -157,7 +146,8 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
         bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux);
         CrossBase.crossTo(remotePolyId, remoteGateway, "onCrossTransfer", txData);
-        logCrossTransfer(msg.sender, address(uint160(remotePolyId)), metaAmount);
+        (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
+        emit CrossTransfer(crossId, from, to, metaAmount, metaFee, _feeFlux, tokenPrice, fluxPrice);
     }
 
     function crossRebalanceFrom(
@@ -170,7 +160,7 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         vault.depositFund(from, amount);
         int256 gap = vault.gateAmount(address(this));
         require(gap < 0 && gap.add(int256(amount)) <= 0, "invalid amount");
-        _crossTransfer(to, amount, 0, 0);
+        _crossTransfer(from, to, amount, 0, 0);
     }
 
     function crossTransferFrom(
@@ -190,7 +180,7 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
             flux.transferFrom(from, address(this), _feeFlux);
             _fee = 0;
         }
-        _crossTransfer(to, amount, _fee, _feeFlux);
+        _crossTransfer(from, to, amount, _fee, _feeFlux);
     }
 
     function _onCrossTransfer(
@@ -214,12 +204,13 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
         (uint256 crossId, address to, uint256 metaAmount, uint256 _fee, uint256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, uint256));
         require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
 
-        logCrossTransfer(address(uint160(fromPolyId)), to, metaAmount);
         if (_onCrossTransfer(to, metaAmount, _fee, _feeFlux)) {
             existedIds[crossId] = CrossStatus.COMPLETED;
+            emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, _fee, _feeFlux);
         } else {
             existedIds[crossId] = CrossStatus.PENDING;
             pending.push(PendingTransfer(crossId, to, metaAmount, _fee, _feeFlux));
+            emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, _fee, _feeFlux);
         }
         return true;
     }
@@ -233,11 +224,12 @@ contract HotpotGate is CrossBase, ERC20, IHotpotGate {
             PendingTransfer storage _pending = pending[pending.length - 1];
             if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux)) return;
             existedIds[_pending.crossId] = CrossStatus.COMPLETED;
+            emit OnCrossTransfer(_pending.crossId, uint256(CrossStatus.COMPLETED), _pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux);
             pending.pop();
         }
     }
 
-    function withdraw(IERC20 _token, uint256 amount) external onlyOwner {
+    function withdraw(ERC20 _token, uint256 amount) external onlyOwner {
         _token.transfer(msg.sender, amount);
     }
 }

@@ -1,5 +1,19 @@
 const record = require('../helps/record');
-const gateways = require('../gateway.json');
+const polyIds = require('../PolyIds.json');
+
+async function deployProxyMulti(Contract, inputs, path) {
+    const deployed = record(hre.Record)._path(path);
+    if (deployed && process.argv.includes('--reset')) return ContractAt(Contract, deployed);
+    const factory = (await ethers.getContractFactory(
+        Contract,
+        (await ethers.getSigners())[0]
+    ));
+    const proxyed = await upgrades.deployProxy(factory, inputs);
+    await proxyed.deployed();
+    console.log(`>> Deployed ${Contract} at ${proxyed.address}`);
+    record(hre.Record, path, proxyed.address);
+    return proxyed;
+}
 
 function ContractAt(Contract, address) {
     return ethers.getSigners().then(
@@ -20,39 +34,24 @@ const func = async function (hre) {
     console.log(deployAcc);
 
     const Deployed = record(hre.Record);
-    const Mocks = record(hre.Mock);
-
-    const tokenMock = await ContractAt("ERC20Mock", Mocks['ERC20Mocks']['ETH']);
 
     const HotpotConfig = await ContractAt('HotpotConfig', Deployed['HotpotConfig']);
 
     const chainId = ethers.provider.network.chainId;
     const polyId = chainId;
-    const gates = gateways.filter(id => id != polyId);
+    const remotePolyIds = polyIds.filter(id => id != polyId);
 
-    for (let i = 0; i < gates.length; i++) {
-        const toPolyId = gates[i];
+    for (let i = 0; i < remotePolyIds.length; i++) {
+        const toPolyId = remotePolyIds[i];
         const salts = [polyId, toPolyId].sort();
         salts.push('ETH');
+        const vault = Deployed._path(['Vaults', 'ETH']);
         const args = [
-            Deployed['HotpotConfig'],
-            Deployed['Vaults']['ETH'],
-            `Hotpot ETH`,
-            `hpETH`
-        ]
-
-        await deploy('HotpotGate', {
-            from: deployAcc,
-            args,
-            log: true,
-            deterministicDeployment: false,
-        });
-
-        const HotpotGate = await deployments.get('HotpotGate');
+            HotpotConfig.address,
+            vault
+        ];
+        const HotpotGate = await deployProxyMulti('HotpotGate', args, ['HotpotGates', toPolyId, 'ETH']);
         console.log('HotpotGate', toPolyId, HotpotGate.address)
-        record(hre.Record, ['HotpotGates', toPolyId, 'ETH'], HotpotGate.address);
-
-        const vault = Deployed.Vaults['ETH']
         await HotpotConfig.bindVault(vault, HotpotGate.address);
     }
 };

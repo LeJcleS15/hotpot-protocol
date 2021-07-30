@@ -1,6 +1,4 @@
-const { ethers } = require('hardhat');
 const record = require('../helps/record');
-const polyIds = require('../PolyIds.json');
 
 function ContractAt(Contract, address) {
     return ethers.getSigners().then(
@@ -11,13 +9,6 @@ function ContractAt(Contract, address) {
         )
     );
 }
-
-Number.prototype.toAddress = function () {
-    const hexStr = ethers.BigNumber.from(Number(this)).toHexString().slice(2);
-    const pad = 40 - hexStr.length;
-    return `0x${'0'.repeat(pad)}${hexStr}`;
-}
-String.prototype.toAddress = Number.prototype.toAddress;
 
 const func = async function (hre) {
     const { deployments, ethers } = hre;
@@ -71,15 +62,7 @@ const func = async function (hre) {
         await FLUX.mint(deployAcc, amount);
     }
     console.log('flux balance:', ethers.utils.formatUnits(await FLUX.balanceOf(deployAcc), decimals));
-
-    const oracle = await ContractAt('SimplePriceOracle', Mocks.SimplePriceOracle);
-    await oracle.batchSetPrice([mockERC20.address, FLUX.address], [ethers.utils.parseUnits("2500", decimals), ethers.utils.parseUnits("0.8", decimals)])
-    await oracle.batchSetPrice(polyIds.map(ids => ids.toAddress()), polyIds.map(ids => ethers.utils.parseUnits(String(ids), decimals)))
-    const ethPrice = await oracle.getPriceMan(mockERC20.address);
-    const fluxPrice = await oracle.getPriceMan(FLUX.address);
-    console.log("ethPrice:", ethers.utils.formatUnits(ethPrice));
-    console.log("fluxPrice:", ethers.utils.formatUnits(fluxPrice));
 };
 
 module.exports = func;
-func.tags = ['MockInit'];
+func.tags = ['Status'];
