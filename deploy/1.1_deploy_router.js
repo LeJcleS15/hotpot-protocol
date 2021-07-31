@@ -33,18 +33,17 @@ const func = async function (hre) {
     const Mocks = record(hre.Mock)
     const oracleMock = Mocks.SimplePriceOracle;
 
-    await deploy('HotpotRouter', {
+    await deploy('Router', {
         from: deployAcc,
         args: [oracleMock, polyId.toAddress()],
         log: true,
         deterministicDeployment: false,
     });
 
+    const router = await deployments.get('Router');
+    console.log('Router', router.address)
 
-    const router = await deployments.get('HotpotRouter');
-    console.log('HotpotRouter', router.address)
-
-    record(hre.Record, ['HotpotRouter'], router.address);
+    record(hre.Record, ['Router'], router.address);
 };
 
 module.exports = func;

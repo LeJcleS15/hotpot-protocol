@@ -52,7 +52,7 @@ const func = async function (hre) {
     const balance = await mockERC20.balanceOf(deployAcc);
     console.log('tester:', ethers.utils.formatUnits(balance, decimals))
 
-    const gates = Object.values(Deployed['HotpotGates']).reduce((t, x) => [...t, ...Object.values(x)], []);
+    const gates = Object.values(Deployed['Gateways']).reduce((t, x) => [...t, ...Object.values(x)], []);
 
     const FLUX = await ContractAt('ERC20Mock', Mocks.FLUX);
     for (let i = 0; i < gates.length; i++) {

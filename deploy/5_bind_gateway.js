@@ -20,7 +20,7 @@ const func = async function (hre) {
 
     const chainId = ethers.provider.network.chainId;
     const polyId = chainId;
-    const gateways = record(hre.Record, undefined, undefined, polyId)['HotpotGates'];
+    const gateways = record(hre.Record, undefined, undefined, polyId)['Gateways'];
 
     const remoteIds = Object.keys(gateways);
     for (let i = 0; i < remoteIds.length; i++) {
@@ -30,10 +30,10 @@ const func = async function (hre) {
         for (let j = 0; j < tokens.length; j++) {
             const tokenName = tokens[j];
             const gate = gateway[tokenName];
-            const remoteGateways = record(hre.Record, undefined, undefined, remoteId)['HotpotGates']
+            const remoteGateways = record(hre.Record, undefined, undefined, remoteId)['Gateways']
             const remoteGate = remoteGateways[polyId][tokenName];
             console.log(tokenName, gate)
-            const gateContract = await ContractAt('HotpotGate', gate);
+            const gateContract = await ContractAt('Gateway', gate);
             await gateContract.bindGateway(remoteId, remoteGate);
             console.log(`bind ${tokenName} ${polyId}:${gate} <- ${remoteId}:${remoteGate}`);
         }

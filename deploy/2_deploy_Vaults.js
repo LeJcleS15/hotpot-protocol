@@ -14,7 +14,7 @@ function ContractAt(Contract, address) {
 
 async function deployProxyMulti(Contract, inputs, path) {
   const deployed = record(hre.Record)._path(path);
-  if (deployed && process.argv.includes('--reset')) return ContractAt(Contract, deployed);
+  if (deployed && !process.argv.includes('--reset')) return ContractAt(Contract, deployed);
   const factory = (await ethers.getContractFactory(
     Contract,
     (await ethers.getSigners())[0]
@@ -37,7 +37,7 @@ const func = async function (hre) {
   const Deployed = record(hre.Record);
   const Mocks = record(hre.Mock);
   const args = [
-    Deployed['HotpotConfig'],
+    Deployed['Config'],
     Mocks['ERC20Mocks']['ETH'],
     `Vault ETH`,
     `vETH`

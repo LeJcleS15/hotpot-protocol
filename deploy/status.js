@@ -26,41 +26,23 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     const vault = Deployed['Vaults']['ETH'];
     const vaultC = await ContractAt('Vault', vault);
-    if (await mockERC20.balanceOf(vaultC.address) < amount) {
-        console.log('mint to Vault:', ethers.utils.formatUnits(amount, decimals))
-        await mockERC20.mint(deployAcc, amount);
-        const allowance = await mockERC20.allowance(deployAcc, vaultC.address);
-        if (allowance < amount)
-            await mockERC20.approve(vaultC.address, ethers.constants.MaxUint256);
-        await vaultC.deposit(amount);
-    }
+
     const vaultBalance = await mockERC20.balanceOf(vaultC.address);
     console.log('Vault balance:', ethers.utils.formatUnits(vaultBalance, decimals));
-    if (await mockERC20.balanceOf(deployAcc) == 0) {
-        console.log('mint to user:', ethers.utils.formatUnits(amount, decimals))
-        await mockERC20.mint(deployAcc, amount);
-    }
+
     const balance = await mockERC20.balanceOf(deployAcc);
     console.log('tester:', ethers.utils.formatUnits(balance, decimals))
 
-    const gates = Object.values(Deployed['HotpotGates']).reduce((t, x) => [...t, ...Object.values(x)], []);
+    const gates = Object.values(Deployed['Gateways']).reduce((t, x) => [...t, ...Object.values(x)], []);
 
     const FLUX = await ContractAt('ERC20Mock', Mocks.FLUX);
     for (let i = 0; i < gates.length; i++) {
         const gate = gates[i];
         const balance = await mockERC20.balanceOf(gate);
         const fluxBalance = await FLUX.balanceOf(gate);
-        if (fluxBalance == 0) {
-            console.log('mint flux to gate:', ethers.utils.formatUnits(amount, decimals));
-            FLUX.mint(gate, amount);
-        }
         console.log('gate:', i, ethers.utils.formatUnits(balance, decimals), ethers.utils.formatUnits(fluxBalance));
     }
 
-    if (await FLUX.balanceOf(deployAcc) == 0) {
-        console.log('mint flux to user:', ethers.utils.formatUnits(amount, decimals));
-        await FLUX.mint(deployAcc, amount);
-    }
     console.log('flux balance:', ethers.utils.formatUnits(await FLUX.balanceOf(deployAcc), decimals));
 };
 

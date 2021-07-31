@@ -3,7 +3,7 @@ const polyIds = require('../PolyIds.json');
 
 async function deployProxyMulti(Contract, inputs, path) {
     const deployed = record(hre.Record)._path(path);
-    if (deployed && process.argv.includes('--reset')) return ContractAt(Contract, deployed);
+    if (deployed && !process.argv.includes('--reset')) return ContractAt(Contract, deployed);
     const factory = (await ethers.getContractFactory(
         Contract,
         (await ethers.getSigners())[0]
@@ -35,7 +35,7 @@ const func = async function (hre) {
 
     const Deployed = record(hre.Record);
 
-    const HotpotConfig = await ContractAt('HotpotConfig', Deployed['HotpotConfig']);
+    const Config = await ContractAt('Config', Deployed['Config']);
 
     const chainId = ethers.provider.network.chainId;
     const polyId = chainId;
@@ -47,12 +47,12 @@ const func = async function (hre) {
         salts.push('ETH');
         const vault = Deployed._path(['Vaults', 'ETH']);
         const args = [
-            HotpotConfig.address,
+            Config.address,
             vault
         ];
-        const HotpotGate = await deployProxyMulti('HotpotGate', args, ['HotpotGates', toPolyId, 'ETH']);
-        console.log('HotpotGate', toPolyId, HotpotGate.address)
-        await HotpotConfig.bindVault(vault, HotpotGate.address);
+        const Gateway = await deployProxyMulti('Gateway', args, ['Gateways', toPolyId, 'ETH']);
+        console.log('Gateway', toPolyId, Gateway.address)
+        await Config.bindVault(vault, Gateway.address);
     }
 };
 

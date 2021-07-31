@@ -6,7 +6,6 @@ deploy() {
     yarn tags Config --reset
     yarn tags Vaults --reset
     yarn tags Gateways --reset
-    yarn tags MockInit 
 }
 
 bind() {
@@ -17,4 +16,4 @@ NETWORK=chainA deploy
 NETWORK=chainB deploy
 NETWORK=chainA bind
 NETWORK=chainB bind
-#node tools/init.js
+tools/mockInit.sh

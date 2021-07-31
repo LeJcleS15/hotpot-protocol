@@ -32,12 +32,12 @@ const func = async function (hre) {
 
   const Deployed = record(hre.Record);
   const access = Deployed.Access;
-  const router = Deployed.HotpotRouter;
+  const router = Deployed.Router;
 
   const Mocks = record(hre.Mock)
   const ccmp = Mocks.PolyMock;
   const oracleMock = Mocks.SimplePriceOracle;
-  const HotpotConfig = await deployProxy('HotpotConfig', [ccmp, Mocks.FLUX, access, oracleMock, router]);
+  const Config = await deployProxy('Config', [ccmp, Mocks.FLUX, access, oracleMock, router]);
 };
 
 module.exports = func;

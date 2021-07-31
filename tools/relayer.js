@@ -28,6 +28,7 @@ async function main() {
         const contract = chain.ContractAt(PolyABI, polyAddress);
         contract.chainId = chainId;
         contract.address = polyAddress;
+        console.log(chainId, polyAddress)
         return contract;
     }
     const polyA = await ContractAt(chainA);
@@ -41,7 +42,8 @@ async function main() {
         const argvs = [txHash];
         Object.keys(event.returnValues).filter(key => !isNaN(Number(key))).forEach(i => argvs[Number(i) + 1] = event.returnValues[i]);
         const gas = await polyB.methods.crossHandler(...argvs).estimateGas();
-        await polyB.methods.crossHandler(...argvs).send({ gas });
+        const tx = await polyB.methods.crossHandler(...argvs).send({ gas });
+        console.log('gas:', gas, tx.gasUsed)
     })
     relayer(polyA, polyB, "A=>B")
     relayer(polyB, polyA, "B=>A")
