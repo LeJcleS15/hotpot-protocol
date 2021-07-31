@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
@@ -9,7 +10,9 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
 abstract contract CrossBase {
     function getEthCrossChainManager() internal view virtual returns (IEthCrossChainManager);
@@ -64,6 +67,7 @@ abstract contract CrossBase {
 contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
+    using SafeERC20 for IERC20;
     enum CrossStatus {
         NONE,
         PENDING,
@@ -75,7 +79,7 @@ contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
     address public remoteGateway;
     CrossStatus public bindStatus;
     IVault public vault;
-    ERC20 public token;
+    IERC20 public token;
     uint256 public nextCrossId;
     uint256 public fee;
     uint256 public constant FEE_DENOM = 10000;
@@ -119,15 +123,15 @@ contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
         fee = _fee;
     }
 
-    function nativeToMeta(uint256 amount) private returns (uint256) {
-        uint8 tokenDecimals = token.decimals();
+    function nativeToMeta(uint256 amount) private view returns (uint256) {
+        uint8 tokenDecimals = ERC20UpgradeSafe(address(token)).decimals();
         uint8 metaDecimals = decimals;
         require(tokenDecimals <= metaDecimals, "HotpotGate::unsupported decimals");
         return amount.mul(10**uint256(metaDecimals - tokenDecimals));
     }
 
-    function metaToNative(uint256 amount) private returns (uint256) {
-        uint8 tokenDecimals = token.decimals();
+    function metaToNative(uint256 amount) private view returns (uint256) {
+        uint8 tokenDecimals = ERC20UpgradeSafe(address(token)).decimals();
         uint8 metaDecimals = decimals;
         require(tokenDecimals <= metaDecimals, "HotpotGate::unsupported decimals");
         return amount.div(10**uint256(metaDecimals - tokenDecimals));
@@ -175,8 +179,8 @@ contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
         if (maxFluxFee > 0) {
             _feeFlux = config.feeFlux(address(token), _fee);
             require(_feeFlux <= maxFluxFee, "execeed flux fee limit!");
-            ERC20 flux = config.FLUX();
-            flux.transferFrom(from, address(this), _feeFlux);
+            IERC20 flux = config.FLUX();
+            flux.safeTransferFrom(from, address(this), _feeFlux);
             _fee = 0;
         }
         _crossTransfer(from, to, amount, _fee, _feeFlux);
@@ -228,7 +232,7 @@ contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
         }
     }
 
-    function withdraw(ERC20 _token, uint256 amount) external onlyOwner {
-        _token.transfer(msg.sender, amount);
+    function withdraw(IERC20 _token, uint256 amount) external onlyOwner {
+        _token.safeTransfer(msg.sender, amount);
     }
 }

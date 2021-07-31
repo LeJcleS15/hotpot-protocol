@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import {IHotpotConfig} from "./HotpotConfig.sol";
@@ -8,8 +9,9 @@ import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
 abstract contract RewardDistributor {
     using SafeMath for uint256;
@@ -56,7 +58,8 @@ interface FToken {
 }
 
 contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributor {
-    ERC20 public override token;
+    using SafeERC20 for IERC20;
+    IERC20 public override token;
     FToken public ftoken;
     IHotpotConfig public config;
     mapping(address => int256) public override gateAmount;
@@ -64,13 +67,13 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
 
     function initialize(
         IHotpotConfig _config,
-        ERC20 _token,
+        IERC20 _token,
         string calldata _name,
         string calldata _symbol
     ) external initializer {
         OwnableUpgradeSafe.__Ownable_init();
         ERC20UpgradeSafe.__ERC20_init(_name, _symbol);
-        ERC20UpgradeSafe._setupDecimals(_token.decimals());
+        ERC20UpgradeSafe._setupDecimals(ERC20UpgradeSafe(address(_token)).decimals());
         config = _config;
         token = _token;
     }
@@ -90,7 +93,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     }
 
     function rewardOut(address to, uint256 fluxReward) internal override(RewardDistributor) {
-        config.FLUX().transfer(to, fluxReward);
+        config.FLUX().safeTransfer(to, fluxReward);
     }
 
     function borrowToken(uint256 amount) private returns (bool) {
@@ -114,10 +117,10 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         gateAmount[msg.sender] = gateAmount[msg.sender].sub(int256(amount));
         uint256 cash = token.balanceOf(address(this));
         if (cash >= amount) {
-            token.transfer(to, amount);
+            token.safeTransfer(to, amount);
         } else {
             if (borrowToken(amount - cash)) {
-                token.transfer(to, amount);
+                token.safeTransfer(to, amount);
             } else {
                 return false;
             }
@@ -148,7 +151,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
 
     // called by gateway
     function depositFund(address from, uint256 amount) external override onlyBound {
-        token.transferFrom(from, address(this), amount);
+        token.safeTransferFrom(from, address(this), amount);
         gateAmount[msg.sender] = gateAmount[msg.sender].add(int256(amount));
         repayToken();
     }
@@ -163,7 +166,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     }
 
     function _deposit(address user, uint256 amount) private {
-        token.transferFrom(user, address(this), amount);
+        token.safeTransferFrom(user, address(this), amount);
         uint256 totalSupply = ERC20UpgradeSafe.totalSupply();
         uint256 share = totalToken == 0 || totalSupply == 0 ? amount : totalSupply.mul(amount).div(totalToken);
         totalToken = totalToken.add(amount);
@@ -179,7 +182,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         uint256 amount = totalToken.mul(share).div(ERC20UpgradeSafe.totalSupply());
         totalToken = totalToken.sub(amount);
         ERC20UpgradeSafe._burn(user, share);
-        token.transfer(user, amount);
+        token.safeTransfer(user, amount);
     }
 
     function withdraw(uint256 share) external {

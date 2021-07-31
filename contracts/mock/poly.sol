@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import {IEthCrossChainManager} from "../poly/IEthCrossChainManager.sol";
@@ -7,7 +8,7 @@ import {fmt} from "./fmt.sol";
 contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
     event CrossChain(uint64 fromId, address fromComtract, uint64 chainId, address toContract, bytes method, bytes txData);
 
-    function getChainID() public view returns (uint256) {
+    function getChainID() public pure returns (uint256) {
         uint256 id;
         assembly {
             id := chainid()
@@ -37,7 +38,7 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
         bytes32 txHash,
         uint64 fromChainId,
         address fromContract,
-        uint64 _toChainId,
+        uint64, /*_toChainId*/
         address _toContract,
         bytes calldata _method,
         bytes calldata _txData

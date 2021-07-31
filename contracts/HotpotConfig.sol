@@ -1,16 +1,20 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+
 import "./Access.sol";
 import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
 import {IEthCrossChainManagerProxy} from "./poly/IEthCrossChainManagerProxy.sol";
 import "./interfaces/IPriceOracle.sol";
 
 interface IHotpotConfig {
-    function FLUX() external view returns (ERC20);
+    function FLUX() external view returns (IERC20);
 
     function boundVault(address) external view returns (address);
 
@@ -27,7 +31,8 @@ interface IHotpotConfig {
 
 contract HotpotConfig is OwnableUpgradeSafe, IHotpotConfig {
     using SafeMath for uint256;
-    ERC20 public override FLUX;
+    using SafeERC20 for IERC20;
+    IERC20 public override FLUX;
     IEthCrossChainManagerProxy public ccmp;
     IAccess public access;
     address public router;
@@ -36,7 +41,7 @@ contract HotpotConfig is OwnableUpgradeSafe, IHotpotConfig {
 
     function initialize(
         IEthCrossChainManagerProxy _ccmp,
-        ERC20 _flux,
+        IERC20 _flux,
         IAccess _access,
         IPriceOracle _oracle,
         address _router
@@ -72,8 +77,8 @@ contract HotpotConfig is OwnableUpgradeSafe, IHotpotConfig {
     function feeFlux(address token, uint256 fee) external view override returns (uint256) {
         uint256 _feePrice = oracle.getPriceMan(token);
         uint256 fluxPrice = oracle.getPriceMan(address(FLUX));
-        uint8 tokenDecimals = ERC20(token).decimals();
-        uint8 fluxDecimals = FLUX.decimals();
+        uint8 tokenDecimals = ERC20UpgradeSafe(token).decimals();
+        uint8 fluxDecimals = ERC20UpgradeSafe(address(FLUX)).decimals();
         uint256 _feeFlux = fee.mul(10**uint256(fluxDecimals - tokenDecimals)).mul(_feePrice).div(fluxPrice);
         return (_feeFlux * 80) / 100;
     }

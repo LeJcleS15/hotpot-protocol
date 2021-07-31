@@ -1,9 +1,10 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 
 interface IVault {
-    function token() external view returns (ERC20);
+    function token() external view returns (IERC20);
 
     function withdrawFund(
         address to,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Created by Flux Team
 
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
