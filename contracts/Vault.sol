@@ -148,6 +148,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         }
     }
 
+    // called by gateway
     function depositFund(address from, uint256 amount) external override onlyBound {
         token.transferFrom(from, address(this), amount);
         gateAmount[msg.sender] = gateAmount[msg.sender].add(int256(amount));
