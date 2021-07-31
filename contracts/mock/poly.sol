@@ -2,17 +2,10 @@ pragma solidity 0.6.12;
 
 import {IEthCrossChainManager} from "../poly/IEthCrossChainManager.sol";
 import {IEthCrossChainManagerProxy} from "../poly/IEthCrossChainManagerProxy.sol";
-import {fmt} from "../fmt.sol";
+import {fmt} from "./fmt.sol";
 
 contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
-    event CrossChain(
-        uint64 fromId,
-        address fromComtract,
-        uint64 chainId,
-        address toContract,
-        bytes method,
-        bytes txData
-    );
+    event CrossChain(uint64 fromId, address fromComtract, uint64 chainId, address toContract, bytes method, bytes txData);
 
     function getChainID() public view returns (uint256) {
         uint256 id;
@@ -22,12 +15,7 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
         return id;
     }
 
-    function getEthCrossChainManager()
-        external
-        view
-        override
-        returns (IEthCrossChainManager)
-    {
+    function getEthCrossChainManager() external view override returns (IEthCrossChainManager) {
         return IEthCrossChainManager(this);
     }
 
@@ -43,7 +31,7 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
         return true;
     }
 
-    mapping(bytes32=>bool) public txExisted;
+    mapping(bytes32 => bool) public txExisted;
 
     function crossHandler(
         bytes32 txHash,
@@ -59,41 +47,25 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
         /*
         The returnData will be bytes32, the last byte must be 01;
         */
-        (bool success, bytes memory returnData) = _toContract.call(
-            abi.encodePacked(
-                bytes4(
-                    keccak256(abi.encodePacked(_method, "(bytes,bytes,uint64)"))
-                ),
-                abi.encode(_txData, addressToBytes(fromContract), fromChainId)
-            )
-        );
+        (bool success, bytes memory returnData) = _toContract.call(abi.encodePacked(bytes4(keccak256(abi.encodePacked(_method, "(bytes,bytes,uint64)"))), abi.encode(_txData, addressToBytes(fromContract), fromChainId)));
 
         /*
         Ensure the executation is successful
         */
-        if(!success && returnData.length != 0) {
+        if (!success && returnData.length != 0) {
             fmt.Printf("call revert: %b", abi.encode(returnData));
         }
         require(success == true, "EthCrossChain call business contract failed");
         /*
         Ensure the returned value is true
         */
-        require(
-            returnData.length != 0,
-            "No return value from business contract!"
-        );
+        require(returnData.length != 0, "No return value from business contract!");
 
         bool res = abi.decode(returnData, (bool));
-        require(
-            res == true,
-            "EthCrossChain call business contract return is not true"
-        );
+        require(res == true, "EthCrossChain call business contract return is not true");
     }
 
-    function bytesToAddress(bytes memory _bs)
-        internal
-        pure
-        returns (address addr) {
+    function bytesToAddress(bytes memory _bs) internal pure returns (address addr) {
         require(_bs.length == 20, "bytes length does not match address");
         assembly {
             // for _bs, first word store _bs.length, second word store _bs.value
@@ -103,10 +75,10 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
     }
 
     /* @notice      Convert address to bytes
-    *  @param _addr Address need to be converted
-    *  @return      Converted bytes from address
-    */
-    function addressToBytes(address _addr) internal pure returns (bytes memory bs){
+     *  @param _addr Address need to be converted
+     *  @return      Converted bytes from address
+     */
+    function addressToBytes(address _addr) internal pure returns (bytes memory bs) {
         assembly {
             // Get a location of some free memory and store it in result as
             // Solidity does for memory variables.
@@ -117,6 +89,6 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
             mstore(add(bs, 0x20), shl(96, _addr))
             // Update the free-memory pointer by padding our last write location to 32 bytes
             mstore(0x40, add(bs, 0x40))
-       }
+        }
     }
 }

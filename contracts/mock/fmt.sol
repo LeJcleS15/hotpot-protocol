@@ -1,6 +1,7 @@
 pragma solidity >=0.5.0;
-
-// %x %s %d %x[]
+// b:bytes
+// s:string
+// %x %s %d %x %b[]
 //event Printf(string,bytes);
 library fmt {
     function Printf(string memory _fmt, bytes memory data) internal view {

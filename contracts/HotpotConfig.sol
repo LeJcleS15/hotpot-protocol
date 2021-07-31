@@ -38,17 +38,19 @@ contract HotpotConfig is OwnableUpgradeSafe, IHotpotConfig {
         IEthCrossChainManagerProxy _ccmp,
         ERC20 _flux,
         IAccess _access,
-        IPriceOracle _oracle
+        IPriceOracle _oracle,
+        address _router
     ) external initializer {
         OwnableUpgradeSafe.__Ownable_init();
         ccmp = _ccmp;
         FLUX = _flux;
         oracle = _oracle;
         access = _access;
+        router = _router;
     }
 
     function isRouter(address) external view override returns (bool) {
-        return true;
+        return msg.sender == router;
     }
 
     function isBalancer(address balancer) external view override returns (bool) {

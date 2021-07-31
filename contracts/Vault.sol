@@ -127,8 +127,12 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
                 return false;
             }
         }
-        if (fee > 0) totalToken = totalToken.add(fee);
-        if (feeFlux > 0) RewardDistributor.updateIncome(feeFlux, ERC20UpgradeSafe.totalSupply());
+        if (fee > 0) {
+            totalToken = totalToken.add(fee);
+        }
+        if (feeFlux > 0) {
+            RewardDistributor.updateIncome(feeFlux, ERC20UpgradeSafe.totalSupply());
+        }
         return true;
     }
 

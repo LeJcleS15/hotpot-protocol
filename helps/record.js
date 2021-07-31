@@ -1,8 +1,8 @@
 const { ethers } = require('hardhat');
 const fs = require('fs');
-module.exports = (file, path, value) => {
+module.exports = (file, path, value, polyId) => {
     const recordFile = process.cwd() + `/${file}`;
-    const chainId = ethers.provider.network.chainId;
+    const chainId = polyId || ethers.provider.network.chainId;
     const record = fs.existsSync(recordFile) ? require(recordFile) : {};
     const chainRecord = record[chainId] || {}
     if (path) {
@@ -11,5 +11,6 @@ module.exports = (file, path, value) => {
         record[chainId] = chainRecord;
         fs.writeFileSync(recordFile, JSON.stringify(record));
     }
+    chainRecord._path = _path => _path.reduce((node, key) => node && node[key], chainRecord);
     return chainRecord;
 }

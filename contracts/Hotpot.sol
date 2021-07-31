@@ -4,7 +4,6 @@ import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
 import {IHotpotConfig} from "./HotpotConfig.sol";
 import {IHotpotGate} from "./interfaces/IHotpotGate.sol";
 import {IVault} from "./interfaces/IVault.sol";
-import {fmt} from "./fmt.sol";
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";

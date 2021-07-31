@@ -1,5 +1,6 @@
 
 require("./hotpot.task");
+require("@openzeppelin/hardhat-upgrades");
 require("@nomiclabs/hardhat-ethers");
 require("hardhat-deploy");
 //const record = require('./helps/record');
@@ -19,10 +20,10 @@ extendEnvironment(async hre => {
 module.exports = {
   //defaultNetwork: 'hardhat',
   networks: {
-    chainA:{
+    chainA: {
       url: "http://127.0.0.1:11000"
     },
-    chainB:{
+    chainB: {
       url: "http://127.0.0.1:12000"
     }
   },

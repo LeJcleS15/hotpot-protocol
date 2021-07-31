@@ -61,8 +61,8 @@ async function main() {
     const connectApp = (A, B) => A.methods.bindGateway(B.chainId, B.address).send({ gas: 200000 });
     const gateA = await ContractAt(chainA, chainB, 'ETH');
     const gateB = await ContractAt(chainB, chainA, 'ETH');
-    await connectApp(gateA, gateB);
-    await connectApp(gateB, gateA);
+    //await connectApp(gateA, gateB);
+    //await connectApp(gateB, gateA);
     await CrossTransfer(gateA, chainB.address, '1000000000000000000000');
     console.log('Done');
     process.exit(0);
