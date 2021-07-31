@@ -18,23 +18,23 @@ abstract contract RewardDistributor {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     struct UserRewards {
-        uint256 rewardFluxPerToken;
+        uint256 rewardFluxPerShare;
         uint256 rewardFlux;
     }
-    uint256 public rewardFluxPerTokenStored;
+    uint256 public rewardFluxPerShareStored;
     mapping(address => UserRewards) public rewards;
 
     function updateIncome(uint256 feeFlux, uint256 totalTokens) internal {
-        rewardFluxPerTokenStored = rewardFluxPerTokenStored.add(feeFlux.mul(1e18).div(totalTokens));
+        rewardFluxPerShareStored = rewardFluxPerShareStored.add(feeFlux.mul(1e18).div(totalTokens));
     }
 
     function updateReward(address account, uint256 shares) internal {
         UserRewards storage _reward = rewards[account];
-        uint256 userRewardFluxPerToken = _reward.rewardFluxPerToken;
-        uint256 _rewardFluxPerTokenStored = rewardFluxPerTokenStored;
-        if (userRewardFluxPerToken != _rewardFluxPerTokenStored) {
-            _reward.rewardFluxPerToken = shares.mul(_rewardFluxPerTokenStored.sub(userRewardFluxPerToken)).div(1e18).add(_reward.rewardFluxPerToken);
-            _reward.rewardFluxPerToken = rewardFluxPerTokenStored;
+        uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
+        uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
+        if (userrewardFluxPerShare != _rewardFluxPerShareStored) {
+            _reward.rewardFluxPerShare = shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
+            _reward.rewardFluxPerShare = rewardFluxPerShareStored;
         }
     }
 
