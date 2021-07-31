@@ -57,7 +57,7 @@ interface FToken {
     function repay(uint256 amount) external;
 }
 
-contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributor {
+contract HotpotVault is OwnableUpgradeSafe, ERC20UpgradeSafe, IHotpotVault, RewardDistributor {
     using SafeERC20 for IERC20;
     IERC20 public override token;
     FToken public ftoken;

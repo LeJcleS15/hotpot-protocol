@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IHotpotGate.sol";
 import "./interfaces/IPriceOracle.sol";
 
-contract HotpotRouter is Ownable, ReentrancyGuard, Pausable {
+contract Router is Ownable, ReentrancyGuard, Pausable {
     using SafeMath for uint256;
     struct Gas {
         uint256 gasLimit;
