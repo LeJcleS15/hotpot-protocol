@@ -6,7 +6,8 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
-import "../interfaces/IPriceOracle.sol";
+
+import {IPriceOracle} from "../interfaces/IPriceOracle.sol";
 
 /**
     @title Demo测试预言机，线上将使用V1已部署的版本

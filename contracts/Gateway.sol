@@ -1,11 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
-import {IHotpotConfig} from "./HotpotConfig.sol";
-import {IHotpotGate} from "./interfaces/IHotpotGate.sol";
-import {IVault} from "./interfaces/IVault.sol";
-
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
@@ -13,6 +8,11 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.s
 import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+
+import {IEthCrossChainManager} from "./interfaces/poly/IEthCrossChainManager.sol";
+import {IConfig} from "./interfaces/IConfig.sol";
+import {IGateway} from "./interfaces/IGateway.sol";
+import {IVault} from "./interfaces/IVault.sol";
 
 abstract contract CrossBase {
     function getEthCrossChainManager() internal view virtual returns (IEthCrossChainManager);
@@ -64,7 +64,7 @@ abstract contract CrossBase {
     }
 }
 
-contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
+contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -74,7 +74,7 @@ contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
         COMPLETED,
         REVERTED
     }
-    IHotpotConfig public config;
+    IConfig public config;
     uint64 public override remotePolyId;
     address public remoteGateway;
     CrossStatus public bindStatus;
@@ -100,7 +100,7 @@ contract HotpotGate is OwnableUpgradeSafe, CrossBase, IHotpotGate {
         _;
     }
 
-    function initialize(IHotpotConfig _config, IVault _vault) external initializer {
+    function initialize(IConfig _config, IVault _vault) external initializer {
         OwnableUpgradeSafe.__Ownable_init();
         config = _config;
         vault = _vault;

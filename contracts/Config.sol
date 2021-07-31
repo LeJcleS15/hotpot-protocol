@@ -8,28 +8,13 @@ import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contrac
 import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
-import "./Access.sol";
-import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
-import {IEthCrossChainManagerProxy} from "./poly/IEthCrossChainManagerProxy.sol";
-import "./interfaces/IPriceOracle.sol";
+import {IAccess} from "./interfaces/IAccess.sol";
+import {IEthCrossChainManager} from "./interfaces/poly/IEthCrossChainManager.sol";
+import {IEthCrossChainManagerProxy} from "./interfaces/poly/IEthCrossChainManagerProxy.sol";
+import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
+import {IConfig} from "./interfaces/IConfig.sol";
 
-interface IHotpotConfig {
-    function FLUX() external view returns (IERC20);
-
-    function boundVault(address) external view returns (address);
-
-    function getEthCrossChainManager() external view returns (IEthCrossChainManager);
-
-    function feeFlux(address token, uint256 amount) external view returns (uint256);
-
-    function isBalancer(address balancer) external view returns (bool);
-
-    function isRouter(address) external view returns (bool);
-
-    function feePrice(address token) external view returns (uint256, uint256);
-}
-
-contract HotpotConfig is OwnableUpgradeSafe, IHotpotConfig {
+contract Config is OwnableUpgradeSafe, IConfig {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     IERC20 public override FLUX;

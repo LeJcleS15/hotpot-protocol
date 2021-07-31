@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import {IEthCrossChainManager} from "../poly/IEthCrossChainManager.sol";
-import {IEthCrossChainManagerProxy} from "../poly/IEthCrossChainManagerProxy.sol";
+import {IEthCrossChainManager} from "../interfaces/poly/IEthCrossChainManager.sol";
+import {IEthCrossChainManagerProxy} from "../interfaces/poly/IEthCrossChainManagerProxy.sol";
 import {fmt} from "./fmt.sol";
 
 contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {

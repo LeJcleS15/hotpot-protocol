@@ -3,9 +3,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol";
 
-interface IAccess {
-    function isBalancer(address balancer) external view returns (bool);
-}
+import {IAccess} from "./interfaces/IAccess.sol";
 
 contract Access is AccessControlUpgradeSafe, IAccess {
     bytes32 public constant BALANCER_ROLE = keccak256("BALANCER_ROLE");

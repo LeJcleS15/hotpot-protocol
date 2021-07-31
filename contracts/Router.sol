@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./interfaces/IHotpotGate.sol";
-import "./interfaces/IPriceOracle.sol";
+
+import {IGateway} from "./interfaces/IGateway.sol";
+import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 
 contract Router is Ownable, ReentrancyGuard, Pausable {
     using SafeMath for uint256;
@@ -59,7 +60,7 @@ contract Router is Ownable, ReentrancyGuard, Pausable {
     }
 
     function crossTransfer(
-        IHotpotGate gate,
+        IGateway gate,
         address to,
         uint256 amount,
         uint256 maxFluxFee
@@ -70,7 +71,7 @@ contract Router is Ownable, ReentrancyGuard, Pausable {
     }
 
     function crossRebalance(
-        IHotpotGate gate,
+        IGateway gate,
         address to,
         uint256 amount
     ) external payable nonReentrant whenNotPaused {

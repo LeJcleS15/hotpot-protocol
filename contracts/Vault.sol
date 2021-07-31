@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import {IHotpotConfig} from "./HotpotConfig.sol";
-import {IVault} from "./interfaces/IVault.sol";
-
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
@@ -12,6 +9,10 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.s
 import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+
+import {IConfig} from "./Config.sol";
+import {IVault} from "./interfaces/IVault.sol";
+import {IFToken} from "./interfaces/IFToken.sol";
 
 abstract contract RewardDistributor {
     using SafeMath for uint256;
@@ -47,26 +48,16 @@ abstract contract RewardDistributor {
     }
 }
 
-interface FToken {
-    function underlying() external view returns (address);
-
-    function borrow(uint256 amount) external returns (bool);
-
-    function borrowBalanceOf(address acct) external view returns (uint256);
-
-    function repay(uint256 amount) external;
-}
-
-contract HotpotVault is OwnableUpgradeSafe, ERC20UpgradeSafe, IHotpotVault, RewardDistributor {
+contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributor {
     using SafeERC20 for IERC20;
     IERC20 public override token;
-    FToken public ftoken;
-    IHotpotConfig public config;
+    IFToken public ftoken;
+    IConfig public config;
     mapping(address => int256) public override gateAmount;
     uint256 public totalToken;
 
     function initialize(
-        IHotpotConfig _config,
+        IConfig _config,
         IERC20 _token,
         string calldata _name,
         string calldata _symbol
@@ -87,7 +78,7 @@ contract HotpotVault is OwnableUpgradeSafe, ERC20UpgradeSafe, IHotpotVault, Rewa
         _;
     }
 
-    function setFToken(FToken _ftoken) external onlyOwner {
+    function setFToken(IFToken _ftoken) external onlyOwner {
         require(_ftoken.underlying() == address(token), "ftoken's underlying and token are not the same");
         ftoken = _ftoken;
     }
@@ -97,7 +88,7 @@ contract HotpotVault is OwnableUpgradeSafe, ERC20UpgradeSafe, IHotpotVault, Rewa
     }
 
     function borrowToken(uint256 amount) private returns (bool) {
-        FToken _ftoken = ftoken;
+        IFToken _ftoken = ftoken;
         if (address(_ftoken) != address(0)) {
             uint256 before = token.balanceOf(address(this));
             // should tranfer token to user
@@ -135,7 +126,7 @@ contract HotpotVault is OwnableUpgradeSafe, ERC20UpgradeSafe, IHotpotVault, Rewa
     }
 
     function repayToken() public {
-        FToken _ftoken = ftoken;
+        IFToken _ftoken = ftoken;
         if (address(_ftoken) == address(0)) return;
 
         uint256 debt = _ftoken.borrowBalanceOf(address(this));
