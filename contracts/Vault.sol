@@ -119,7 +119,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         if (cash >= amount) {
             token.transfer(to, amount);
         } else {
-            uint256 diff = cash - amount;
+            uint256 diff = amount - cash;
             if (borrowToken(ftoken, to, diff)) {
                 //_deposit(address(ftoken), diff);
                 if (cash > 0) token.transfer(to, cash);
