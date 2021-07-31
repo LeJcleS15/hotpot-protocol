@@ -39,8 +39,8 @@ contract Config is OwnableUpgradeSafe, IConfig {
         router = _router;
     }
 
-    function isRouter(address) external view override returns (bool) {
-        return msg.sender == router;
+    function isRouter(address _router) external view override returns (bool) {
+        return _router == router;
     }
 
     function isBalancer(address balancer) external view override returns (bool) {
