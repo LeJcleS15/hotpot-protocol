@@ -46,15 +46,13 @@ abstract contract RewardDistributor {
 }
 
 interface FToken {
-    function borrowToken(
-        address token,
-        address to,
-        uint256 amount
-    ) external returns (bool);
+    function underlying() external view returns (address);
 
-    function totalDebt() external view returns (uint256);
+    function borrow(uint256 amount) external returns (bool);
 
-    function repayToken(address token, uint256 amount) external;
+    function borrowBalanceOf(address acct) external view returns (uint256);
+
+    function repay(uint256 amount) external;
 }
 
 contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributor {
@@ -87,6 +85,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     }
 
     function setFToken(FToken _ftoken) external onlyOwner {
+        require(_ftoken.underlying() == address(token), "ftoken's underlying and token are not the same");
         ftoken = _ftoken;
     }
 
@@ -94,16 +93,14 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         config.FLUX().transfer(to, fluxReward);
     }
 
-    function borrowToken(
-        FToken _ftoken,
-        address to,
-        uint256 amount
-    ) private returns (bool) {
+    function borrowToken(uint256 amount) private returns (bool) {
+        FToken _ftoken = ftoken;
         if (address(_ftoken) != address(0)) {
-            uint256 before = token.balanceOf(to);
+            uint256 before = token.balanceOf(address(this));
             // should tranfer token to user
-            address(_ftoken).call(abi.encodeWithSelector(ftoken.borrowToken.selector, address(token), to, amount));
-            return token.balanceOf(to) == before.add(amount);
+            // 忽略执行成功与否
+            address(_ftoken).call(abi.encodeWithSelector(_ftoken.borrow.selector, address(this), amount));
+            return token.balanceOf(address(this)) == before.add(amount);
         }
         return false;
     }
@@ -119,10 +116,8 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         if (cash >= amount) {
             token.transfer(to, amount);
         } else {
-            uint256 diff = amount - cash;
-            if (borrowToken(ftoken, to, diff)) {
-                //_deposit(address(ftoken), diff);
-                if (cash > 0) token.transfer(to, cash);
+            if (borrowToken(amount - cash)) {
+                token.transfer(to, amount);
             } else {
                 return false;
             }
@@ -137,14 +132,17 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     }
 
     function repayToken() public {
-        if (address(ftoken) == address(0)) return;
-        uint256 debt = ftoken.totalDebt();
+        FToken _ftoken = ftoken;
+        if (address(_ftoken) == address(0)) return;
+
+        uint256 debt = _ftoken.borrowBalanceOf(address(this));
+        if (debt == 0) return;
+
         uint256 cash = token.balanceOf(address(this));
         uint256 repayAmount = Math.min(debt, cash);
         if (repayAmount > 0) {
-            token.approve(address(ftoken), repayAmount);
-            ftoken.repayToken(address(token), repayAmount);
-            // require(ftoken.totalDebt() == debt.sub(repayAmount), "repay failed");
+            token.approve(address(_ftoken), repayAmount);
+            _ftoken.repay(repayAmount);
         }
     }
 

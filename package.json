@@ -1,10 +1,13 @@
 {
   "scripts": {
+    "check": "solhint ./contracts/*.sol",
+    "format": "prettier --write 'contracts/**/*.sol'",
     "heco_t": "truffle --network=heco_test",
     "bsc_t": "truffle --network=bsc_test",
     "tags": "hardhat --network $NETWORK deploy --no-compile --tags",
     "console": "hardhat --network $NETWORK console",
-    "truffle": "truffle  --network $NETWORK console"
+    "truffle": "truffle  --network $NETWORK console",
+    "compile": "hardhat compile"
   },
   "dependencies": {
     "@openzeppelin/contracts": "3.4",
