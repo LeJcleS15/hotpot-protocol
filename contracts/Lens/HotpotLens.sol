@@ -11,7 +11,6 @@ contract HotpotLens {
         uint256 shares;
         uint256 cash;
         uint256 totalToken;
-        uint256 rewardFluxPerShareStored;
         uint256 tokenPrice;
         uint256 fluxPrice;
     }
@@ -21,7 +20,7 @@ contract HotpotLens {
         IConfig config = vault.config();
         //IERC20 flux = config.FLUX();
         (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
-        return VaultMeta({token: address(token), shares: vault.totalSupply(), cash: token.balanceOf(address(vault)), totalToken: vault.totalToken(), rewardFluxPerShareStored: vault.rewardFluxPerShareStored(), tokenPrice: tokenPrice, fluxPrice: fluxPrice});
+        return VaultMeta({token: address(token), shares: vault.totalSupply(), cash: token.balanceOf(address(vault)), totalToken: vault.totalToken(), tokenPrice: tokenPrice, fluxPrice: fluxPrice});
     }
 
     function getAllVaultsMeta(Vault[] calldata vaults) external view returns (VaultMeta[] memory) {
@@ -52,7 +51,7 @@ contract HotpotLens {
         IConfig config = gateway.config();
         //IERC20 flux = config.FLUX();
         (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
-        return GatewayMeta({token: address(token), remotePolyId: gateway.remotePolyId(), remoteGateway: gateway.remoteGateway(), fee: gateway.fee(), vault: address(vault), pendingLength: gateway.pendingLength(), balance: vault.gateAmount(address(gateway)), vaultCash: token.balanceOf(address(vault)), tokenPrice: tokenPrice, fluxPrice: fluxPrice, bindStatus: uint256(gateway.bindStatus())});
+        return GatewayMeta({token: address(token), remotePolyId: gateway.remotePolyId(), remoteGateway: gateway.remoteGateway(), fee: gateway.fee(), vault: address(vault), pendingLength: gateway.pendingLength(), balance: vault.gateDebt(address(gateway)), vaultCash: token.balanceOf(address(vault)), tokenPrice: tokenPrice, fluxPrice: fluxPrice, bindStatus: uint256(gateway.bindStatus())});
     }
 
     function getAllGatewaysMeta(Gateway[] calldata gateways) external view returns (GatewayMeta[] memory) {

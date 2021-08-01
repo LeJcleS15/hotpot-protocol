@@ -15,5 +15,5 @@ interface IVault {
 
     function depositFund(address from, uint256 amount) external;
 
-    function gateAmount(address) external view returns (int256);
+    function gateDebt(address) external view returns (int256);
 }

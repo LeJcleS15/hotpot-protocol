@@ -161,8 +161,8 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(config.isBalancer(from), "onlyBalancer");
         vault.depositFund(from, amount);
-        int256 gap = vault.gateAmount(address(this));
-        require(gap < 0 && gap.add(int256(amount)) <= 0, "invalid amount");
+        int256 debt = vault.gateDebt(address(this));
+        require(debt < 0 && debt.add(int256(amount)) <= 0, "invalid amount");
         _crossTransfer(from, to, amount, 0, 0);
     }
 

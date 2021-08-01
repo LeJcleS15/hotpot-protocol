@@ -23,9 +23,16 @@ abstract contract RewardDistributor {
     }
     uint256 public rewardFluxPerShareStored;
     mapping(address => UserRewards) public rewards;
+    uint256 public reservedFeeFlux;
+    uint256 public reservedFee;
+    uint256 public constant RESERVED_POINT = 3000;
+    uint256 public constant RESERVED_DENOM = 10000;
 
-    function updateIncome(uint256 feeFlux, uint256 totalTokens) internal {
-        rewardFluxPerShareStored = rewardFluxPerShareStored.add(feeFlux.mul(1e18).div(totalTokens));
+    function updateIncome(uint256 feeFlux, uint256 totalShares) internal {
+        uint256 reserved = totalShares == 0 ? feeFlux : feeFlux.mul(RESERVED_POINT).div(RESERVED_DENOM);
+        reservedFeeFlux = reservedFeeFlux.add(reserved);
+        uint256 remain = feeFlux.sub(reserved);
+        if (remain > 0) rewardFluxPerShareStored = rewardFluxPerShareStored.add(remain.mul(1e18).div(totalShares));
     }
 
     function updateReward(address account, uint256 shares) internal {
@@ -53,8 +60,10 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     IERC20 public override token;
     IFToken public ftoken;
     IConfig public config;
-    mapping(address => int256) public override gateAmount;
+    mapping(address => int256) public override gateDebt;
     uint256 public totalToken;
+
+    // totalToken == cash - sum(gateDebt) - reservedFee
 
     function initialize(
         IConfig _config,
@@ -105,7 +114,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         uint256 fee,
         uint256 feeFlux
     ) external override onlyBound returns (bool) {
-        gateAmount[msg.sender] = gateAmount[msg.sender].sub(int256(amount));
+        gateDebt[msg.sender] = gateDebt[msg.sender].sub(int256(amount.add(fee)));
         uint256 cash = token.balanceOf(address(this));
         if (cash >= amount) {
             token.safeTransfer(to, amount);
@@ -116,11 +125,15 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
                 return false;
             }
         }
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
         if (fee > 0) {
-            totalToken = totalToken.add(fee);
+            uint256 reserved = totalShares == 0 ? fee : fee.mul(RewardDistributor.RESERVED_POINT).div(RewardDistributor.RESERVED_DENOM);
+            RewardDistributor.reservedFee = RewardDistributor.reservedFee.add(reserved);
+            uint256 remain = fee.sub(reserved);
+            if (remain > 0) totalToken = totalToken.add(remain);
         }
         if (feeFlux > 0) {
-            RewardDistributor.updateIncome(feeFlux, ERC20UpgradeSafe.totalSupply());
+            RewardDistributor.updateIncome(feeFlux, totalShares);
         }
         return true;
     }
@@ -143,7 +156,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     // called by gateway
     function depositFund(address from, uint256 amount) external override onlyBound {
         token.safeTransferFrom(from, address(this), amount);
-        gateAmount[msg.sender] = gateAmount[msg.sender].add(int256(amount));
+        gateDebt[msg.sender] = gateDebt[msg.sender].add(int256(amount));
         repayToken();
     }
 
@@ -158,8 +171,8 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
 
     function _deposit(address user, uint256 amount) private {
         token.safeTransferFrom(user, address(this), amount);
-        uint256 totalSupply = ERC20UpgradeSafe.totalSupply();
-        uint256 share = totalToken == 0 || totalSupply == 0 ? amount : totalSupply.mul(amount).div(totalToken);
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
+        uint256 share = totalToken == 0 ? amount : totalShares.mul(amount).div(totalToken);
         totalToken = totalToken.add(amount);
         ERC20UpgradeSafe._mint(user, share);
         repayToken();
@@ -170,7 +183,8 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     }
 
     function _withdraw(address user, uint256 share) private {
-        uint256 amount = totalToken.mul(share).div(ERC20UpgradeSafe.totalSupply());
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
+        uint256 amount = totalToken.mul(share).div(totalShares);
         totalToken = totalToken.sub(amount);
         ERC20UpgradeSafe._burn(user, share);
         token.safeTransfer(user, amount);
