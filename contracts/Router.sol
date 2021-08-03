@@ -73,11 +73,12 @@ contract Router is Ownable, ReentrancyGuard, Pausable {
     function crossRebalance(
         IGateway gate,
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 fluxAmount
     ) external payable nonReentrant whenNotPaused {
         uint256 fee = getFeeNative(gate.remotePolyId());
         require(msg.value >= fee, "fee too low");
-        gate.crossRebalanceFrom(msg.sender, to, amount);
+        gate.crossRebalanceFrom(msg.sender, to, amount, fluxAmount);
     }
 
     function extractFee(address) external whenNotPaused {

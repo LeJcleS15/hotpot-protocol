@@ -11,6 +11,7 @@ deploy() {
 bind() {
     yarn tags Bind
 }
+export NETENV=LOCAL
 npx hardhat compile
 NETWORK=chainA deploy
 NETWORK=chainB deploy

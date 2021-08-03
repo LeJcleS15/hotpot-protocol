@@ -1,4 +1,7 @@
 const record = require('../helps/record');
+const ChainsData = require('../helps/chains');
+
+const _ = undefined;
 
 Number.prototype.toAddress = function () {
     const hexStr = ethers.BigNumber.from(Number(this)).toHexString().slice(2);
@@ -20,22 +23,23 @@ function ContractAt(Contract, address) {
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
+    const { getChainId } = hre;
+    hre.chainId = await getChainId();
 
     const accounts = await ethers.getSigners();
     const deployAcc = accounts[0].address;
     console.log(deployAcc);
 
+    const Deployed = record(hre.Record, _, _, hre.chainId);
 
-    const Deployed = record(hre.Record);
-
-    const chainId = ethers.provider.network.chainId;
-    const polyId = chainId;
-    const Mocks = record(hre.Mock)
-    const oracleMock = Mocks.SimplePriceOracle;
+    const chains = ChainsData(hre.Chains);
+    //const tokens = ChainsData(hre.Tokens);
+    const oracle = chains.Oracle;
+    const polyId = chains.polyId;
 
     await deploy('Router', {
         from: deployAcc,
-        args: [oracleMock, polyId.toAddress()],
+        args: [oracle, polyId.toAddress()],
         log: true,
         deterministicDeployment: false,
     });
@@ -43,7 +47,7 @@ const func = async function (hre) {
     const router = await deployments.get('Router');
     console.log('Router', router.address)
 
-    record(hre.Record, ['Router'], router.address);
+    record(hre.Record, ['Router'], router.address, hre.chainId);
 };
 
 module.exports = func;

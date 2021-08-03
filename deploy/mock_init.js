@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const record = require('../helps/record');
-const polyIds = require('../PolyIds.json');
+const ChainsData = require('../helps/chains');
 
 function ContractAt(Contract, address) {
     return ethers.getSigners().then(
@@ -22,13 +22,18 @@ String.prototype.toAddress = Number.prototype.toAddress;
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
+    const { getChainId } = hre;
+    hre.chainId = await getChainId();
 
     const accounts = await ethers.getSigners();
     const deployAcc = accounts[0].address;
     console.log(deployAcc);
 
-    const Mocks = record(hre.Mock);
-    const mockERC20 = await ContractAt('ERC20Mock', Mocks['ERC20Mocks']['ETH'])
+
+    const chains = ChainsData(hre.Chains);
+    if (!['chainA', 'chainB'].includes(chains._name)) throw "onlyLocal network";
+
+    const mockERC20 = await ContractAt('ERC20Mock', chains.TOKENS.ETH.token)
     const decimals = await mockERC20.decimals();
     const amount = ethers.utils.parseUnits("1000", decimals);
 
@@ -54,7 +59,8 @@ const func = async function (hre) {
 
     const gates = Object.values(Deployed['Gateways']).reduce((t, x) => [...t, ...Object.values(x)], []);
 
-    const FLUX = await ContractAt('ERC20Mock', Mocks.FLUX);
+    const FLUX = await ContractAt('ERC20Mock', chains.FLUX);
+    /*
     for (let i = 0; i < gates.length; i++) {
         const gate = gates[i];
         const balance = await mockERC20.balanceOf(gate);
@@ -65,15 +71,16 @@ const func = async function (hre) {
         }
         console.log('gate:', i, ethers.utils.formatUnits(balance, decimals), ethers.utils.formatUnits(fluxBalance));
     }
-
+    */
     if (await FLUX.balanceOf(deployAcc) == 0) {
         console.log('mint flux to user:', ethers.utils.formatUnits(amount, decimals));
         await FLUX.mint(deployAcc, amount);
     }
     console.log('flux balance:', ethers.utils.formatUnits(await FLUX.balanceOf(deployAcc), decimals));
 
-    const oracle = await ContractAt('SimplePriceOracle', Mocks.SimplePriceOracle);
+    const oracle = await ContractAt('SimplePriceOracle', chains.Oracle);
     await oracle.batchSetPrice([mockERC20.address, FLUX.address], [ethers.utils.parseUnits("2500", decimals), ethers.utils.parseUnits("0.8", decimals)])
+    const polyIds = Object.values(chains._raw).map(chain => chain.polyId);
     await oracle.batchSetPrice(polyIds.map(ids => ids.toAddress()), polyIds.map(ids => ethers.utils.parseUnits(String(ids), decimals)))
     const ethPrice = await oracle.getPriceMan(mockERC20.address);
     const fluxPrice = await oracle.getPriceMan(FLUX.address);

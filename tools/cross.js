@@ -1,11 +1,11 @@
 const { EthWeb3 } = require('./ethWeb3');
+const ethers = require('ethers');
 const Router = require('../artifacts/contracts/Router.sol/Router.json');
 const Vault = require('../artifacts/contracts/Vault.sol/Vault.json');
 const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 const IConfig = require('../artifacts/contracts/interfaces/IConfig.sol/IConfig.json');
 const IERC20 = require('../artifacts/@openzeppelin/contracts/token/ERC20/IERC20.sol/IERC20.json');
-const Mocks = require('../mock.json');
-const Record = require('../record.json');
+const Record = require('../record_local.json');
 
 const truffleConfig = require('../truffle-config');
 async function newChain(name) {
@@ -20,6 +20,7 @@ async function newChain(name) {
     return chain;
 }
 
+const bn = (numStr, decimals = 18) => ethers.utils.parseUnits(numStr, decimals);
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const max256 = '0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
 
@@ -41,9 +42,9 @@ const CrossTransfer = async (A, to, amount, maxFlux) => {
         const iconfig = await A.iconfig;
         const fluxAddress = await iconfig.methods.FLUX().call();
         const flux = A.eweb3.ContractAt(IERC20.abi, fluxAddress);
-        await approve(flux, A.eweb3.address, A.address, maxFlux);
+        await approve(flux, A.eweb3.address, A.vault.address, maxFlux);
     }
-    const tx = A.router.methods.crossTransfer(A.address, to, amount, maxFlux);
+    const tx = A.router.methods.crossTransfer(A.address, to, amount, maxFlux.toString());
     return A.eweb3.sendTx(tx);
 }
 
@@ -85,17 +86,26 @@ const GateAt = (chain, dest, symbol) => {
     return contract;
 }
 
+function getArgv(flag) {
+    const i = process.argv.indexOf(`-${flag}`);
+    return i > 0 ? process.argv[i + 1] : undefined;
+}
+
 async function main() {
-    const chainA = await newChain('chainA');
-    const chainB = await newChain('chainB');
+    const from = getArgv('from') || 'chainA';
+    const to = getArgv('to') || 'chainB';
+    const chainA = await newChain(from);
+    const chainB = await newChain(to);
 
     //const connectApp = (A, B) => A.methods.bindGateway(B.chainId, B.address).send({ gas: 200000 });
-    const gateA = GateAt(chainA, chainB, 'ETH');
-    const gateB = GateAt(chainB, chainA, 'ETH');
+    const token = getArgv('flux') || 'ETH';
+    const gateA = GateAt(chainA, chainB, token);
+    const gateB = GateAt(chainB, chainA, token);
 
     //await connectApp(gateA, gateB);
     //await connectApp(gateB, gateA);
-    const tx = await CrossTransfer(gateA, chainB.address, '1000000000000000000000', 0);
+    const feeFlux = getArgv('flux')
+    const tx = await CrossTransfer(gateA, chainB.address, bn('1'), feeFlux ? bn(feeFlux) : 0);
     console.log('Done', tx.gasUsed);
     process.exit(0);
 }

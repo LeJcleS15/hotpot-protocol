@@ -1,7 +1,7 @@
 const { EthWeb3 } = require('./ethWeb3');
 const PolyJson = require('../artifacts/contracts/mock/poly.sol/PolyMock.json');
-const Mocks = require('../mock.json');
-const Record = require('../record.json');
+const Record = require('../record_local.json');
+const ChainData = require('../chains_local.json')
 
 const truffleConfig = require('../truffle-config');
 async function newChain(name) {
@@ -24,7 +24,8 @@ async function main() {
     const chainB = await newChain('chainB');
     const ContractAt = async chain => {
         const chainId = await chain.web3.eth.getChainId();
-        const polyAddress = Mocks[chainId].PolyMock;
+        const chains = Object.values(ChainData).find(chain => chain.chainId == chainId);
+        const polyAddress = chains.PolyCCMP;
         const contract = chain.ContractAt(PolyABI, polyAddress);
         contract.chainId = chainId;
         contract.address = polyAddress;

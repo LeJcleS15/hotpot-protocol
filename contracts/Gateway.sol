@@ -91,7 +91,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         address to;
         uint256 metaAmount;
         uint256 fee;
-        uint256 feeFlux;
+        int256 feeFlux;
     }
     PendingTransfer[] public pending;
 
@@ -142,7 +142,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         address to,
         uint256 amount,
         uint256 _fee,
-        uint256 _feeFlux
+        int256 _feeFlux
     ) private {
         uint256 crossId = nextCrossId++;
         uint256 metaFee = nativeToMeta(_fee);
@@ -156,14 +156,17 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     function crossRebalanceFrom(
         address from,
         address to,
-        uint256 amount
+        uint256 amount,
+        uint256 fluxAmount
     ) external override onlyRouter {
+        require(fluxAmount >= 0, "invalid flux amount");
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(config.isBalancer(from), "onlyBalancer");
-        vault.depositFund(from, amount);
-        int256 debt = vault.gateDebt(address(this));
-        require(debt < 0 && debt.add(int256(amount)) <= 0, "invalid amount");
-        _crossTransfer(from, to, amount, 0, 0);
+        (int256 debt, int256 debtFlux) = vault.gateDebt(address(this));
+        require(debt.add(int256(amount)) <= 0, "invalid amount");
+        require(debtFlux.add(int256(fluxAmount)) <= 0, "invalid amount");
+        vault.depositFund(from, uint256(amount), fluxAmount);
+        _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
     }
 
     function crossTransferFrom(
@@ -173,27 +176,28 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 maxFluxFee
     ) external override onlyRouter {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        vault.depositFund(from, amount);
         uint256 _fee = amount.mul(fee).div(FEE_DENOM);
         uint256 _feeFlux;
         if (maxFluxFee > 0) {
             _feeFlux = config.feeFlux(address(token), _fee);
-            require(_feeFlux <= maxFluxFee, "execeed flux fee limit!");
-            IERC20 flux = config.FLUX();
-            flux.safeTransferFrom(from, address(this), _feeFlux);
             _fee = 0;
+            require(_feeFlux <= maxFluxFee, "execeed flux fee limit!");
         }
-        _crossTransfer(from, to, amount, _fee, _feeFlux);
+        vault.depositFund(from, amount, _feeFlux);
+        require(_feeFlux < uint256(type(int256).max), "invalid fee");
+        _crossTransfer(from, to, amount, _fee, int256(_feeFlux));
     }
 
     function _onCrossTransfer(
         address to,
         uint256 metaAmount,
         uint256 _fee,
-        uint256 _feeFlux
+        int256 _feeFlux
     ) private returns (bool) {
         uint256 tokenAmount = metaToNative(metaAmount);
-        return vault.withdrawFund(to, tokenAmount, _fee, _feeFlux);
+        uint256 before = token.balanceOf(to);
+        (bool success, ) = address(vault).call(abi.encodeWithSelector(vault.withdrawFund.selector, to, tokenAmount, _fee, _feeFlux));
+        return success && token.balanceOf(to) == tokenAmount.add(before);
     }
 
     function onCrossTransfer(
@@ -204,7 +208,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         address from = bytesToAddress(fromAddress);
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
-        (uint256 crossId, address to, uint256 metaAmount, uint256 _fee, uint256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, uint256));
+        (uint256 crossId, address to, uint256 metaAmount, uint256 _fee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
         require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
 
         if (_onCrossTransfer(to, metaAmount, _fee, _feeFlux)) {
@@ -223,16 +227,12 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
 
     function dealPending(uint256 count) external {
-        while (count-- < 0) {
+        while (count-- > 0) {
             PendingTransfer storage _pending = pending[pending.length - 1];
             if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux)) return;
             existedIds[_pending.crossId] = CrossStatus.COMPLETED;
             emit OnCrossTransfer(_pending.crossId, uint256(CrossStatus.COMPLETED), _pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux);
             pending.pop();
         }
-    }
-
-    function withdraw(IERC20 _token, uint256 amount) external onlyOwner {
-        _token.safeTransfer(msg.sender, amount);
     }
 }

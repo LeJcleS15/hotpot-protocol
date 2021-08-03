@@ -1,0 +1,10 @@
+{
+    "chainA": {
+        "chainId": 1000,
+        "polyId": 1000
+    },
+    "chainB": {
+        "chainId": 2000,
+        "polyId": 2000
+    }
+}

@@ -1,5 +1,5 @@
 const record = require('../helps/record');
-const polyIds = require('../PolyIds.json');
+const ChainsData = require('../helps/chains');
 
 async function deployProxyMulti(Contract, inputs, path) {
     const deployed = record(hre.Record)._path(path);
@@ -28,6 +28,8 @@ function ContractAt(Contract, address) {
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
+    const { getChainId } = hre;
+    hre.chainId = await getChainId();
 
     const accounts = await ethers.getSigners();
     const deployAcc = accounts[0].address;
@@ -37,22 +39,28 @@ const func = async function (hre) {
 
     const Config = await ContractAt('Config', Deployed['Config']);
 
-    const chainId = ethers.provider.network.chainId;
-    const polyId = chainId;
-    const remotePolyIds = polyIds.filter(id => id != polyId);
+    const chains = ChainsData(hre.Chains);
+    const polyId = chains.polyId;
 
-    for (let i = 0; i < remotePolyIds.length; i++) {
-        const toPolyId = remotePolyIds[i];
+    const remoteChains = Object.values(chains._raw).filter(chain => chain.polyId != polyId);
+
+    for (let i = 0; i < remoteChains.length; i++) {
+        const toPolyId = remoteChains[i].polyId;
         const salts = [polyId, toPolyId].sort();
         salts.push('ETH');
-        const vault = Deployed._path(['Vaults', 'ETH']);
-        const args = [
-            Config.address,
-            vault
-        ];
-        const Gateway = await deployProxyMulti('Gateway', args, ['Gateways', toPolyId, 'ETH']);
-        console.log('Gateway', toPolyId, Gateway.address)
-        await Config.bindVault(vault, Gateway.address);
+        const vaults = Deployed.Vaults;
+        const tokenSymbols = Object.keys(vaults);
+        for (let i = 0; i < tokenSymbols.length; i++) {
+            const symbol = tokenSymbols[i];
+            const vault = vaults[symbol];
+            const args = [
+                Config.address,
+                vault
+            ];
+            const Gateway = await deployProxyMulti('Gateway', args, ['Gateways', toPolyId, symbol]);
+            console.log(`Gateway-${symbol}-${toPolyId}`, Gateway.address)
+            await Config.bindVault(vault, Gateway.address);
+        }
     }
 };
 

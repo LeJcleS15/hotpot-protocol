@@ -2,7 +2,7 @@ const hre = require('hardhat');
 const { ethers, upgrades } = hre;
 const record = require('../helps/record');
 const Access = "Access";
-
+const _ = undefined;
 
 async function deployProxy(Contract, inputs) {
     const factory = (await ethers.getContractFactory(
@@ -26,7 +26,10 @@ function ContractAt(Contract, address) {
     );
 }
 
-module.exports = async function () {
+module.exports = async function (hre) {
+    const { getChainId } = hre;
+    hre.chainId = await getChainId();
+
     const accounts = await ethers.getSigners();
     const deployAcc = accounts[0].address;
     const access = await deployProxy(Access, []);

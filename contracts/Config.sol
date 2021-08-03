@@ -14,6 +14,8 @@ import {IEthCrossChainManagerProxy} from "./interfaces/poly/IEthCrossChainManage
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 import {IConfig} from "./interfaces/IConfig.sol";
 
+import {fmt} from "./mock/fmt.sol";
+
 contract Config is OwnableUpgradeSafe, IConfig {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -65,6 +67,8 @@ contract Config is OwnableUpgradeSafe, IConfig {
         uint8 tokenDecimals = ERC20UpgradeSafe(token).decimals();
         uint8 fluxDecimals = ERC20UpgradeSafe(address(FLUX)).decimals();
         uint256 _feeFlux = fee.mul(10**uint256(fluxDecimals - tokenDecimals)).mul(_feePrice).div(fluxPrice);
+        fmt.Printf("feeDecimals: %d %d", abi.encode(tokenDecimals, fluxDecimals));
+        fmt.Printf("feeFlux: %x fee: %d _feeFlux:%d feePrice:%d fluxPrice:%d", abi.encode(token, fee, _feeFlux, _feePrice, fluxPrice));
         return (_feeFlux * 80) / 100;
     }
 }

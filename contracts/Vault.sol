@@ -40,7 +40,7 @@ abstract contract RewardDistributor {
         uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
         uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
         if (userrewardFluxPerShare != _rewardFluxPerShareStored) {
-            _reward.rewardFluxPerShare = shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
+            _reward.rewardFlux = shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
             _reward.rewardFluxPerShare = rewardFluxPerShareStored;
         }
     }
@@ -60,7 +60,11 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     IERC20 public override token;
     IFToken public ftoken;
     IConfig public config;
-    mapping(address => int256) public override gateDebt;
+    struct GateDebt {
+        int256 debt;
+        int256 debtFlux;
+    }
+    mapping(address => GateDebt) public override gateDebt;
     uint256 public totalToken;
 
     // totalToken == cash - sum(gateDebt) - reservedFee
@@ -108,36 +112,6 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         return false;
     }
 
-    function withdrawFund(
-        address to,
-        uint256 amount,
-        uint256 fee,
-        uint256 feeFlux
-    ) external override onlyBound returns (bool) {
-        gateDebt[msg.sender] = gateDebt[msg.sender].sub(int256(amount.add(fee)));
-        uint256 cash = token.balanceOf(address(this));
-        if (cash >= amount) {
-            token.safeTransfer(to, amount);
-        } else {
-            if (borrowToken(amount - cash)) {
-                token.safeTransfer(to, amount);
-            } else {
-                return false;
-            }
-        }
-        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
-        if (fee > 0) {
-            uint256 reserved = totalShares == 0 ? fee : fee.mul(RewardDistributor.RESERVED_POINT).div(RewardDistributor.RESERVED_DENOM);
-            RewardDistributor.reservedFee = RewardDistributor.reservedFee.add(reserved);
-            uint256 remain = fee.sub(reserved);
-            if (remain > 0) totalToken = totalToken.add(remain);
-        }
-        if (feeFlux > 0) {
-            RewardDistributor.updateIncome(feeFlux, totalShares);
-        }
-        return true;
-    }
-
     function repayToken() public {
         IFToken _ftoken = ftoken;
         if (address(_ftoken) == address(0)) return;
@@ -153,10 +127,52 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         }
     }
 
+    function withdrawFund(
+        address to,
+        uint256 amount,
+        uint256 fee,
+        int256 feeFlux
+    ) external override onlyBound {
+        GateDebt storage debt = gateDebt[msg.sender];
+        debt.debt = debt.debt.sub(int256(amount.add(fee)));
+        uint256 cash = token.balanceOf(address(this));
+        if (cash >= amount) {
+            token.safeTransfer(to, amount);
+        } else {
+            require(borrowToken(amount - cash), "borrow failed");
+            token.safeTransfer(to, amount);
+        }
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
+        if (fee > 0) {
+            uint256 reserved = totalShares == 0 ? fee : fee.mul(RewardDistributor.RESERVED_POINT).div(RewardDistributor.RESERVED_DENOM);
+            RewardDistributor.reservedFee = RewardDistributor.reservedFee.add(reserved);
+            uint256 remain = fee.sub(reserved);
+            if (remain > 0) totalToken = totalToken.add(remain);
+        }
+        if (feeFlux > 0) {
+            // 跨链手续费
+            debt.debtFlux = debt.debtFlux.sub(feeFlux);
+            RewardDistributor.updateIncome(uint256(feeFlux), totalShares);
+        } else if (feeFlux < 0) {
+            // 表示调仓
+            debt.debtFlux = debt.debtFlux.add(feeFlux); // add负数
+            config.FLUX().safeTransfer(to, uint256(-feeFlux));
+        }
+    }
+
     // called by gateway
-    function depositFund(address from, uint256 amount) external override onlyBound {
+    function depositFund(
+        address from,
+        uint256 amount,
+        uint256 feeFlux
+    ) external override onlyBound {
+        GateDebt storage debt = gateDebt[msg.sender];
         token.safeTransferFrom(from, address(this), amount);
-        gateDebt[msg.sender] = gateDebt[msg.sender].add(int256(amount));
+        if (feeFlux > 0) {
+            config.FLUX().safeTransferFrom(from, address(this), feeFlux);
+            debt.debtFlux = debt.debtFlux.add(int256(feeFlux));
+        }
+        debt.debt = debt.debt.add(int256(amount));
         repayToken();
     }
 
@@ -192,5 +208,29 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
 
     function withdraw(uint256 share) external {
         _withdraw(msg.sender, share);
+    }
+
+    function depositReserved(uint256 amount) external {
+        config.FLUX().safeTransferFrom(msg.sender, address(this), amount);
+        RewardDistributor.reservedFeeFlux = RewardDistributor.reservedFeeFlux.add(amount);
+    }
+
+    function withdrawReserved(
+        address to,
+        uint256 fee,
+        uint256 feeFlux
+    ) external onlyOwner {
+        require(fee <= RewardDistributor.reservedFee, "exceed fee limit");
+        require(feeFlux <= RewardDistributor.reservedFeeFlux, "exceed feeFlux limit");
+        RewardDistributor.reservedFee = 0;
+        RewardDistributor.reservedFeeFlux = 0;
+        if (fee > 0) token.safeTransfer(to, fee);
+        if (feeFlux > 0) config.FLUX().safeTransfer(to, feeFlux);
+    }
+}
+
+contract VaultFix is Vault {
+    function fix() external {
+        config = IConfig(0xd398aFCFEA303414DA8e2DB1Ada4e41Ef33729c5);
     }
 }

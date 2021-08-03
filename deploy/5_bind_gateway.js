@@ -1,4 +1,5 @@
 const record = require('../helps/record');
+const ChainsData = require('../helps/chains');
 
 function ContractAt(Contract, address) {
     return ethers.getSigners().then(
@@ -13,24 +14,27 @@ function ContractAt(Contract, address) {
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
+    const { getChainId } = hre;
+    hre.chainId = await getChainId();
 
     const accounts = await ethers.getSigners();
     const deployAcc = accounts[0].address;
     console.log(deployAcc);
 
-    const chainId = ethers.provider.network.chainId;
-    const polyId = chainId;
-    const gateways = record(hre.Record, undefined, undefined, polyId)['Gateways'];
+    const chains = ChainsData(hre.Chains);
+    const polyId = chains.polyId;
+    const gateways = record(hre.Record, undefined, undefined, chains.chainId)['Gateways'];
 
     const remoteIds = Object.keys(gateways);
     for (let i = 0; i < remoteIds.length; i++) {
         const remoteId = remoteIds[i];
-        const gateway = gateways[remoteIds];
+        const gateway = gateways[remoteId];
         const tokens = Object.keys(gateway);
         for (let j = 0; j < tokens.length; j++) {
             const tokenName = tokens[j];
             const gate = gateway[tokenName];
-            const remoteGateways = record(hre.Record, undefined, undefined, remoteId)['Gateways']
+            const remoteChainId = chains._toChainId(remoteId);
+            const remoteGateways = record(hre.Record, undefined, undefined, remoteChainId)['Gateways'];
             const remoteGate = remoteGateways[polyId][tokenName];
             console.log(tokenName, gate)
             const gateContract = await ContractAt('Gateway', gate);

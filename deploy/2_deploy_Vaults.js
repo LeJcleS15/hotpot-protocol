@@ -1,4 +1,5 @@
 const record = require('../helps/record');
+const ChainsData = require('../helps/chains');
 const hre = require('hardhat');
 const { ethers, upgrades } = hre;
 
@@ -29,22 +30,39 @@ async function deployProxyMulti(Contract, inputs, path) {
 const func = async function (hre) {
   const { deployments, ethers } = hre;
   const { deploy } = deployments;
+  const { getChainId } = hre;
+  hre.chainId = await getChainId();
 
   const accounts = await ethers.getSigners();
   const deployAcc = accounts[0].address;
   console.log(deployAcc);
 
   const Deployed = record(hre.Record);
-  const Mocks = record(hre.Mock);
-  const args = [
-    Deployed['Config'],
-    Mocks['ERC20Mocks']['ETH'],
-    `Vault ETH`,
-    `vETH`
-  ]
+  const TOKENS = ChainsData(hre.Chains).TOKENS;
 
-  const vault = await deployProxyMulti('Vault', args, ['Vaults', 'ETH'])
-  console.log('Vault', vault.address)
+  const TokenSymbols = Object.keys(TOKENS);
+  for (let i = 0; i < TokenSymbols.length; i++) {
+    const symbol = TokenSymbols[i];
+    const token = TOKENS[symbol];
+
+    const args = [
+      Deployed['Config'],
+      token.token,
+      `Hotpot Vault ${symbol.toUpperCase()}`,
+      `hot${symbol.toUpperCase()}`
+    ]
+    console.log('Vaults:', symbol);
+    const vault = await deployProxyMulti('Vault', args, ['Vaults', symbol]);
+    console.log(`Hotpot Vault ${symbol.toUpperCase()}`, vault.address);
+    if (token.ftoken) {
+      const ftoken = await vault.ftoken();
+      if (ftoken.toLowerCase() != token.ftoken.toLowerCase()) {
+        console.log('setFtoken:', token.ftoken);
+        await vault.setFToken(token.ftoken);
+      }
+    }
+  }
+
 };
 
 module.exports = func;

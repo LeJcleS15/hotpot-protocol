@@ -51,7 +51,8 @@ contract HotpotLens {
         IConfig config = gateway.config();
         //IERC20 flux = config.FLUX();
         (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
-        return GatewayMeta({token: address(token), remotePolyId: gateway.remotePolyId(), remoteGateway: gateway.remoteGateway(), fee: gateway.fee(), vault: address(vault), pendingLength: gateway.pendingLength(), balance: vault.gateDebt(address(gateway)), vaultCash: token.balanceOf(address(vault)), tokenPrice: tokenPrice, fluxPrice: fluxPrice, bindStatus: uint256(gateway.bindStatus())});
+        (int256 debt, ) = vault.gateDebt(address(gateway));
+        return GatewayMeta({token: address(token), remotePolyId: gateway.remotePolyId(), remoteGateway: gateway.remoteGateway(), fee: gateway.fee(), vault: address(vault), pendingLength: gateway.pendingLength(), balance: debt, vaultCash: token.balanceOf(address(vault)), tokenPrice: tokenPrice, fluxPrice: fluxPrice, bindStatus: uint256(gateway.bindStatus())});
     }
 
     function getAllGatewaysMeta(Gateway[] calldata gateways) external view returns (GatewayMeta[] memory) {
