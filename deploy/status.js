@@ -56,6 +56,13 @@ const func = async function (hre) {
         for (let i = 0; i < gates.length; i++) {
             const gate = await ContractAt('Gateway', gates[i]);
             const pendingLength = await gate.pendingLength();
+            for (let i = 0; i < pendingLength; i++) {
+                const pending = await gate.pending(i);
+                console.log(`pending-${i}:`, pending.crossId.toString(), pending.to, pending.metaAmount.toString(), pending.fee.toString(), pending.feeFlux.toString())
+                //const resp = await vaultC.callStatic.withdrawFund(pending.to, pending.metaAmount, pending.fee, pending.feeFlux, { gas: 500000 });
+                //console.log('resp:', resp);
+            }
+            //if (pendingLength > 0) await gate.dealPending(pendingLength);
             const remotePolyId = await gate.remotePolyId();
             console.log("pending:", remotePolyId.toString(), pendingLength.toString())
         }

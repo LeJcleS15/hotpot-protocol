@@ -186,6 +186,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         vault.depositFund(from, amount, _feeFlux);
         require(_feeFlux < uint256(type(int256).max), "invalid fee");
         _crossTransfer(from, to, amount, _fee, int256(_feeFlux));
+        dealPending(1);
     }
 
     function _onCrossTransfer(
@@ -214,6 +215,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         if (_onCrossTransfer(to, metaAmount, _fee, _feeFlux)) {
             existedIds[crossId] = CrossStatus.COMPLETED;
             emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, _fee, _feeFlux);
+            dealPending(1);
         } else {
             existedIds[crossId] = CrossStatus.PENDING;
             pending.push(PendingTransfer(crossId, to, metaAmount, _fee, _feeFlux));
@@ -226,7 +228,8 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return pending.length;
     }
 
-    function dealPending(uint256 count) external {
+    function dealPending(uint256 count) public {
+        if (pending.length == 0) return;
         while (count-- > 0) {
             PendingTransfer storage _pending = pending[pending.length - 1];
             if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux)) return;

@@ -35,6 +35,13 @@ abstract contract RewardDistributor {
         if (remain > 0) rewardFluxPerShareStored = rewardFluxPerShareStored.add(remain.mul(1e18).div(totalShares));
     }
 
+    function pendingReward(address account, uint256 shares) internal view returns (uint256) {
+        UserRewards storage _reward = rewards[account];
+        uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
+        uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
+        return shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
+    }
+
     function updateReward(address account, uint256 shares) internal {
         UserRewards storage _reward = rewards[account];
         uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
@@ -45,13 +52,11 @@ abstract contract RewardDistributor {
         }
     }
 
-    function rewardOut(address to, uint256 fluxReward) internal virtual;
-
-    function harvest() external {
-        UserRewards storage _reward = rewards[msg.sender];
+    function harvest(address account) internal returns (uint256) {
+        UserRewards storage _reward = rewards[account];
         uint256 outFluxAmount = _reward.rewardFlux;
         _reward.rewardFlux = 0;
-        rewardOut(msg.sender, outFluxAmount);
+        return outFluxAmount;
     }
 }
 
@@ -96,8 +101,13 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         ftoken = _ftoken;
     }
 
-    function rewardOut(address to, uint256 fluxReward) internal override(RewardDistributor) {
-        config.FLUX().safeTransfer(to, fluxReward);
+    function pendingReward(address account) external view returns (uint256) {
+        return RewardDistributor.pendingReward(account, ERC20UpgradeSafe.balanceOf(account));
+    }
+
+    function harvest() external update {
+        uint256 reward = RewardDistributor.harvest(msg.sender);
+        config.FLUX().safeTransfer(msg.sender, reward);
     }
 
     function borrowToken(uint256 amount) private returns (bool) {
@@ -226,11 +236,5 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         RewardDistributor.reservedFeeFlux = 0;
         if (fee > 0) token.safeTransfer(to, fee);
         if (feeFlux > 0) config.FLUX().safeTransfer(to, feeFlux);
-    }
-}
-
-contract VaultFix is Vault {
-    function fix() external {
-        config = IConfig(0xd398aFCFEA303414DA8e2DB1Ada4e41Ef33729c5);
     }
 }

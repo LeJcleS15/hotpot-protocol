@@ -3,12 +3,12 @@ require("./hotpot.task");
 require("@openzeppelin/hardhat-upgrades");
 require("@nomiclabs/hardhat-ethers");
 require("hardhat-deploy");
+require("@nomiclabs/hardhat-waffle");
 const { testnet, mainnet } = require('./networks.json');
 //const record = require('./helps/record');
 const { extendEnvironment } = require('hardhat/config');
 
 extendEnvironment(hre => {
-  console.log('extendEnvironment:')
   // getter setter?
   const netenv = process.env.NETENV;
   if (!netenv) {

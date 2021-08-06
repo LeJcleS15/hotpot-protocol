@@ -5,7 +5,7 @@ import {IEthCrossChainManager} from "../interfaces/poly/IEthCrossChainManager.so
 import {IEthCrossChainManagerProxy} from "../interfaces/poly/IEthCrossChainManagerProxy.sol";
 import {fmt} from "./fmt.sol";
 
-contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
+contract PolyCall is IEthCrossChainManager, IEthCrossChainManagerProxy {
     event CrossChain(uint64 fromId, address fromComtract, uint64 chainId, address toContract, bytes method, bytes txData);
 
     function getChainID() public pure returns (uint256) {
@@ -29,6 +29,7 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
         uint64 chainID = uint64(getChainID());
         address toContract = bytesToAddress(_toContract);
         emit CrossChain(chainID, msg.sender, _toChainId, toContract, _method, _txData);
+        crossHandler(keccak256(_txData), chainID, msg.sender, _toChainId, toContract, _method, _txData);
         return true;
     }
 
@@ -42,7 +43,7 @@ contract PolyMock is IEthCrossChainManager, IEthCrossChainManagerProxy {
         address _toContract,
         bytes calldata _method,
         bytes calldata _txData
-    ) external {
+    ) public {
         require(!txExisted[txHash], "tx existed");
         txExisted[txHash] = true;
         /*

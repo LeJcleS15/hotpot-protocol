@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require('hardhat');
 const record = require('../helps/record');
 const ContractKey = ["Vaults"];
-const Contract = "VaultFix";
+const Contract = "Vault";
 
 function ContractAt(Contract, address) {
   return ethers.getSigners().then(
@@ -50,7 +50,7 @@ module.exports = async function (hre) {
     const vault = vaults[i];
     const oldC = await ContractAt(Contract, vault)
     const newC = await upgradeProxy(vault, Contract);
-    await newC.fix();
+    await newC.fix(Deployed.Config);
     console.log(i, await oldC.config())
   }
   //const newC = await upgradeProxy(oldAddress, Contract);
