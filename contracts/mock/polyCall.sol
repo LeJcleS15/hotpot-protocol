@@ -5,6 +5,9 @@ import {IEthCrossChainManager} from "../interfaces/poly/IEthCrossChainManager.so
 import {IEthCrossChainManagerProxy} from "../interfaces/poly/IEthCrossChainManagerProxy.sol";
 import {fmt} from "./fmt.sol";
 
+import "hardhat/console.sol";
+import "../interfaces/IGateway.sol";
+
 contract PolyCall is IEthCrossChainManager, IEthCrossChainManagerProxy {
     event CrossChain(uint64 fromId, address fromComtract, uint64 chainId, address toContract, bytes method, bytes txData);
 
@@ -26,8 +29,9 @@ contract PolyCall is IEthCrossChainManager, IEthCrossChainManagerProxy {
         bytes calldata _method,
         bytes calldata _txData
     ) external override returns (bool) {
-        uint64 chainID = uint64(getChainID());
+        //uint64 chainID = uint64(getChainID());
         address toContract = bytesToAddress(_toContract);
+        uint64 chainID = IGateway(toContract).remotePolyId();
         emit CrossChain(chainID, msg.sender, _toChainId, toContract, _method, _txData);
         crossHandler(keccak256(_txData), chainID, msg.sender, _toChainId, toContract, _method, _txData);
         return true;
@@ -58,6 +62,8 @@ contract PolyCall is IEthCrossChainManager, IEthCrossChainManagerProxy {
         */
         if (!success && returnData.length != 0) {
             fmt.Printf("call revert: %b", abi.encode(returnData));
+            console.log("call revert:");
+            console.logBytes(returnData);
         }
         require(success == true, "EthCrossChain call business contract failed");
         /*
