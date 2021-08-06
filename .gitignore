@@ -3,6 +3,7 @@ node_modules
 ganache-cli
 
 chains_local.json
+test/.openzeppelin
 
 .secret
 
