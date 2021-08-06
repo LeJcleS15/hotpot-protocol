@@ -1,12 +1,17 @@
 const record = require('../helps/record');
+const ChainsData = require('../helps/chains');
 
 const func = async function (hre) {
   const { deployments, ethers } = hre;
   const { deploy } = deployments;
+  const { getChainId } = hre;
+  hre.chainId = await getChainId();
 
   const accounts = await ethers.getSigners();
   const deployAcc = accounts[0].address;
   console.log(deployAcc);
+
+  if (hre.netenv != 'local') throw "not local network"
 
   await deploy('FluxMock', {
     from: deployAcc,
@@ -17,7 +22,8 @@ const func = async function (hre) {
   });
 
   const FLUX = await deployments.get('FluxMock');
-  record(hre.Mock, ['FLUX'], FLUX.address);
+  const chain = ChainsData(hre.Chains);
+  record(hre.Chains, ['FLUX'], FLUX.address, chain._name);
 
   await deploy('ETHMock', {
     from: deployAcc,
@@ -28,7 +34,7 @@ const func = async function (hre) {
   });
 
   const ERC20Mock = await deployments.get('ETHMock');
-  record(hre.Mock, ['ERC20Mocks', 'ETH'], ERC20Mock.address);
+  record(hre.Chains, ['TOKENS', 'ETH', 'token'], ERC20Mock.address, chain._name);
 };
 
 module.exports = func;

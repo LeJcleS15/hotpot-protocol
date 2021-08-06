@@ -1,82 +1,90 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import {IHotpotConfig} from "./HotpotConfig.sol";
-import {IVault} from "./interfaces/IVault.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import {ERC20UpgradeSafe} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import {IConfig} from "./Config.sol";
+import {IVault} from "./interfaces/IVault.sol";
+import {IFToken} from "./interfaces/IFToken.sol";
 
 abstract contract RewardDistributor {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     struct UserRewards {
-        uint256 rewardPerToken;
-        uint256 rewardFluxPerToken;
-        uint256 reward;
+        uint256 rewardFluxPerShare;
         uint256 rewardFlux;
     }
-    uint256 public rewardPerTokenStored;
-    uint256 public rewardFluxPerTokenStored;
+    uint256 public rewardFluxPerShareStored;
     mapping(address => UserRewards) public rewards;
+    uint256 public reservedFeeFlux;
+    uint256 public reservedFee;
+    uint256 public constant RESERVED_POINT = 3000;
+    uint256 public constant RESERVED_DENOM = 10000;
 
-    function updateIncome(
-        uint256 fee,
-        uint256 feeFlux,
-        uint256 totalTokens
-    ) internal {
-        if (fee > 0) {
-            rewardPerTokenStored = rewardPerTokenStored.add(fee.mul(1e18).div(totalTokens));
-        }
-        if (feeFlux > 0) {
-            rewardFluxPerTokenStored = rewardFluxPerTokenStored.add(feeFlux.mul(1e18).div(totalTokens));
-        }
+    function updateIncome(uint256 feeFlux, uint256 totalShares) internal {
+        uint256 reserved = totalShares == 0 ? feeFlux : feeFlux.mul(RESERVED_POINT).div(RESERVED_DENOM);
+        reservedFeeFlux = reservedFeeFlux.add(reserved);
+        uint256 remain = feeFlux.sub(reserved);
+        if (remain > 0) rewardFluxPerShareStored = rewardFluxPerShareStored.add(remain.mul(1e18).div(totalShares));
+    }
+
+    function pendingReward(address account, uint256 shares) internal view returns (uint256) {
+        UserRewards storage _reward = rewards[account];
+        uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
+        uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
+        return shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
     }
 
     function updateReward(address account, uint256 shares) internal {
         UserRewards storage _reward = rewards[account];
-        uint256 userRewardFluxPerToken = _reward.rewardFluxPerToken;
-        uint256 _rewardFluxPerTokenStored = rewardFluxPerTokenStored;
-        if (userRewardFluxPerToken != _rewardFluxPerTokenStored) {
-            _reward.rewardFluxPerToken = shares.mul(_rewardFluxPerTokenStored.sub(userRewardFluxPerToken)).div(1e18).add(_reward.rewardFluxPerToken);
-            _reward.rewardFluxPerToken = rewardFluxPerTokenStored;
-        }
-
-        uint256 userRewardPerTokenStored = _reward.rewardPerToken;
-        uint256 _rewardPerTokenStored = rewardPerTokenStored;
-        if (userRewardPerTokenStored != rewardPerTokenStored) {
-            _reward.reward = shares.mul(_rewardPerTokenStored.sub(userRewardPerTokenStored)).div(1e18).add(_reward.reward);
-            _reward.rewardPerToken = rewardPerTokenStored;
+        uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
+        uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
+        if (userrewardFluxPerShare != _rewardFluxPerShareStored) {
+            _reward.rewardFlux = shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
+            _reward.rewardFluxPerShare = rewardFluxPerShareStored;
         }
     }
 
-    function rewardOut(
-        address to,
-        uint256 reward,
-        uint256 fluxReward
-    ) internal virtual;
-
-    function harvest() external {
-        UserRewards storage _reward = rewards[msg.sender];
-        uint256 outAmount = _reward.reward;
+    function harvest(address account) internal returns (uint256) {
+        UserRewards storage _reward = rewards[account];
         uint256 outFluxAmount = _reward.rewardFlux;
-        _reward.reward = 0;
         _reward.rewardFlux = 0;
-        rewardOut(msg.sender, outAmount, outFluxAmount);
+        return outFluxAmount;
     }
 }
 
-contract Vault is Ownable, ERC20, IVault, RewardDistributor {
-    ERC20 public override token;
-    IHotpotConfig public config;
-    mapping(address => int256) public gateAmount;
+contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributor {
+    using SafeERC20 for IERC20;
+    IERC20 public override token;
+    IFToken public ftoken;
+    IConfig public config;
+    struct GateDebt {
+        int256 debt;
+        int256 debtFlux;
+    }
+    mapping(address => GateDebt) public override gateDebt;
+    uint256 public totalToken;
 
-    constructor(IHotpotConfig _config, ERC20 _token) public ERC20("Vault Token", "VT") {
+    // totalToken == cash - sum(gateDebt) - reservedFee
+
+    function initialize(
+        IConfig _config,
+        IERC20 _token,
+        string calldata _name,
+        string calldata _symbol
+    ) external initializer {
+        OwnableUpgradeSafe.__Ownable_init();
+        ERC20UpgradeSafe.__ERC20_init(_name, _symbol);
+        ERC20UpgradeSafe._setupDecimals(ERC20UpgradeSafe(address(_token)).decimals());
         config = _config;
         token = _token;
-        ERC20._setupDecimals(_token.decimals());
     }
 
     modifier onlyBound() {
@@ -84,51 +92,149 @@ contract Vault is Ownable, ERC20, IVault, RewardDistributor {
         _;
     }
     modifier update() {
-        RewardDistributor.updateReward(msg.sender, ERC20.balanceOf(msg.sender));
+        RewardDistributor.updateReward(msg.sender, ERC20UpgradeSafe.balanceOf(msg.sender));
         _;
     }
 
-    function rewardOut(
-        address to,
-        uint256 reward,
-        uint256 fluxReward
-    ) internal override(RewardDistributor) {
-        token.transfer(to, reward);
-        config.FLUX().transfer(to, fluxReward);
+    function setFToken(IFToken _ftoken) external onlyOwner {
+        require(_ftoken.underlying() == address(token), "ftoken's underlying and token are not the same");
+        ftoken = _ftoken;
+    }
+
+    function pendingReward(address account) external view returns (uint256) {
+        return RewardDistributor.pendingReward(account, ERC20UpgradeSafe.balanceOf(account));
+    }
+
+    function harvest() external update {
+        uint256 reward = RewardDistributor.harvest(msg.sender);
+        config.FLUX().safeTransfer(msg.sender, reward);
+    }
+
+    function borrowToken(uint256 amount) private returns (bool) {
+        IFToken _ftoken = ftoken;
+        if (address(_ftoken) != address(0)) {
+            uint256 before = token.balanceOf(address(this));
+            // should tranfer token to user
+            // 忽略执行成功与否
+            address(_ftoken).call(abi.encodeWithSelector(_ftoken.borrow.selector, address(this), amount));
+            return token.balanceOf(address(this)) == before.add(amount);
+        }
+        return false;
+    }
+
+    function repayToken() public {
+        IFToken _ftoken = ftoken;
+        if (address(_ftoken) == address(0)) return;
+
+        uint256 debt = _ftoken.borrowBalanceOf(address(this));
+        if (debt == 0) return;
+
+        uint256 cash = token.balanceOf(address(this));
+        uint256 repayAmount = Math.min(debt, cash);
+        if (repayAmount > 0) {
+            token.approve(address(_ftoken), repayAmount);
+            _ftoken.repay(repayAmount);
+        }
     }
 
     function withdrawFund(
         address to,
         uint256 amount,
         uint256 fee,
-        uint256 feeFlux
-    ) external override onlyBound returns (bool) {
-        RewardDistributor.updateIncome(fee, feeFlux, ERC20.totalSupply());
-        gateAmount[msg.sender] = gateAmount[msg.sender].sub(int256(amount));
-        return token.transfer(to, amount);
+        int256 feeFlux
+    ) external override onlyBound {
+        GateDebt storage debt = gateDebt[msg.sender];
+        debt.debt = debt.debt.sub(int256(amount.add(fee)));
+        uint256 cash = token.balanceOf(address(this));
+        if (cash >= amount) {
+            token.safeTransfer(to, amount);
+        } else {
+            require(borrowToken(amount - cash), "borrow failed");
+            token.safeTransfer(to, amount);
+        }
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
+        if (fee > 0) {
+            uint256 reserved = totalShares == 0 ? fee : fee.mul(RewardDistributor.RESERVED_POINT).div(RewardDistributor.RESERVED_DENOM);
+            RewardDistributor.reservedFee = RewardDistributor.reservedFee.add(reserved);
+            uint256 remain = fee.sub(reserved);
+            if (remain > 0) totalToken = totalToken.add(remain);
+        }
+        if (feeFlux > 0) {
+            // 跨链手续费
+            debt.debtFlux = debt.debtFlux.sub(feeFlux);
+            RewardDistributor.updateIncome(uint256(feeFlux), totalShares);
+        } else if (feeFlux < 0) {
+            // 表示调仓
+            debt.debtFlux = debt.debtFlux.add(feeFlux); // add负数
+            config.FLUX().safeTransfer(to, uint256(-feeFlux));
+        }
     }
 
-    function depositFund(uint256 amount) external override onlyBound {
-        token.transferFrom(msg.sender, address(this), amount);
-        gateAmount[msg.sender] = gateAmount[msg.sender].add(int256(amount));
+    // called by gateway
+    function depositFund(
+        address from,
+        uint256 amount,
+        uint256 feeFlux
+    ) external override onlyBound {
+        GateDebt storage debt = gateDebt[msg.sender];
+        token.safeTransferFrom(from, address(this), amount);
+        if (feeFlux > 0) {
+            config.FLUX().safeTransferFrom(from, address(this), feeFlux);
+            debt.debtFlux = debt.debtFlux.add(int256(feeFlux));
+        }
+        debt.debt = debt.debt.add(int256(amount));
+        repayToken();
     }
 
     function _beforeTokenTransfer(
         address from,
         address to,
         uint256
-    ) internal override(ERC20) {
-        if (from != address(0)) RewardDistributor.updateReward(from, ERC20.balanceOf(from));
-        if (to != address(0)) RewardDistributor.updateReward(to, ERC20.balanceOf(to));
+    ) internal override(ERC20UpgradeSafe) {
+        if (from != address(0)) RewardDistributor.updateReward(from, ERC20UpgradeSafe.balanceOf(from));
+        if (to != address(0)) RewardDistributor.updateReward(to, ERC20UpgradeSafe.balanceOf(to));
+    }
+
+    function _deposit(address user, uint256 amount) private {
+        token.safeTransferFrom(user, address(this), amount);
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
+        uint256 share = totalToken == 0 ? amount : totalShares.mul(amount).div(totalToken);
+        totalToken = totalToken.add(amount);
+        ERC20UpgradeSafe._mint(user, share);
+        repayToken();
     }
 
     function deposit(uint256 amount) external {
-        token.transferFrom(msg.sender, address(this), amount);
-        ERC20._mint(msg.sender, amount);
+        _deposit(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount) external {
-        ERC20._burn(msg.sender, amount);
-        token.transfer(msg.sender, amount);
+    function _withdraw(address user, uint256 share) private {
+        uint256 totalShares = ERC20UpgradeSafe.totalSupply();
+        uint256 amount = totalToken.mul(share).div(totalShares);
+        totalToken = totalToken.sub(amount);
+        ERC20UpgradeSafe._burn(user, share);
+        token.safeTransfer(user, amount);
+    }
+
+    function withdraw(uint256 share) external {
+        _withdraw(msg.sender, share);
+    }
+
+    function depositReserved(uint256 amount) external {
+        config.FLUX().safeTransferFrom(msg.sender, address(this), amount);
+        RewardDistributor.reservedFeeFlux = RewardDistributor.reservedFeeFlux.add(amount);
+    }
+
+    function withdrawReserved(
+        address to,
+        uint256 fee,
+        uint256 feeFlux
+    ) external onlyOwner {
+        require(fee <= RewardDistributor.reservedFee, "exceed fee limit");
+        require(feeFlux <= RewardDistributor.reservedFeeFlux, "exceed feeFlux limit");
+        RewardDistributor.reservedFee = 0;
+        RewardDistributor.reservedFeeFlux = 0;
+        if (fee > 0) token.safeTransfer(to, fee);
+        if (feeFlux > 0) config.FLUX().safeTransfer(to, feeFlux);
     }
 }

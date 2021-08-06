@@ -1,0 +1,90 @@
+{
+    "BSC": {
+        "polyId": 79,
+        "chainId": 97,
+        "PolyCCMP": "0x441C035446c947a97bD36b425B67907244576990",
+        "LinkOracle": "0x34bd1f7319d7c9b7a5c3941F3Fd5A1Ab27f4E71d",
+        "Oracle": "0x48dd9f0c9cAC0E9A520549312A7AD09745c742C5",
+        "FLUX": "0xEa55F04358FbD1CDeD2319AD5577C82D8043087f",
+        "TOKENS": {
+            "USDT": {
+                "token": "0x11B9Ed8605FA555cf576ad55cb2070520931D172",
+                "ftoken": "0xd2c7f20DaCbf4Fbcb58dd0001d0A449401CfEaEB"
+            },
+            "USDC": {
+                "token": "0xbBDC774d731423c884047e5B49c0d381Ed4214bF",
+                "ftoken": "0x47F4D80b43851170fa98425498d51590f83E112e"
+            },
+            "DAI": {
+                "token": "0x69291B31EaDADCf2844faC944501ed50C9e60838",
+                "ftoken": "0x91f968c15D4A935B4f1132F933a841cE92a1f5c4"
+            },
+            "BTC": {
+                "token": "0xc319bde77B0cBe825366b7401C6f31B613a66f4B",
+                "ftoken": "0xE969D3B00F84d6201afD23f8855A6E32E43A650f"
+            },
+            "ETH": {
+                "token": "0x2789333fD99011c89EB32a8c044ebee1e507784c",
+                "ftoken": "0x53d2b74D1be61C7c7461Ad2C38f92eee96E6457A"
+            }
+        }
+    },
+    "HECO": {
+        "polyId": 7,
+        "chainId": 256,
+        "PolyCCMP": "0xc5757b5d22984E534004cC7Fb1D59eD14EC510a5",
+        "Oracle": "0x797220627f225803f8eD8022013120C104759D2b",
+        "FLUX": "0x2b312499523eA1108B96cF192336033e2f9b2056",
+        "TOKENS": {
+            "USDT": {
+                "token": "0xF415A20d174ACe9e2E87f1BF98d02DD87Bf30c45",
+                "ftoken": "0xe307a89C833B0408afb9e652627fCCfCeA8F0b1e"
+            },
+            "USDC": {
+                "token": "0x98185D13E206EfBA9F0466d935883C184e4cA485",
+                "ftoken": ""
+            },
+            "DAI": {
+                "token": "0x7ED5483cF9074066c14B521bf80673b56f41642C",
+                "ftoken": "0x58579D759F7913afA1732686C99158F2d21BD28C"
+            },
+            "BTC": {
+                "token": "0x91f968c15D4A935B4f1132F933a841cE92a1f5c4",
+                "ftoken": "0xc1628d7ACf3CED493DC296ff5D5497C7dc1018Cf"
+            },
+            "ETH": {
+                "token": "0x76c624C69ADCCf3C3BDE7185a449cAD3d147eF82",
+                "ftoken": "0x1bbD87605FC6F997e00befe8F01da66a8fC86649"
+            }
+        }
+    },
+    "OEC": {
+        "polyId": 200,
+        "chainId": 65,
+        "PolyCCMP": "0x38917884b397447227fb45cbA0342F1bFf7A3470",
+        "Oracle": "0xB8B81eE7739440aDE8A26167Bc4ce88eB9F4a89F",
+        "FLUX": "0x690937472E3Ec802fbc91AD68cfCc7EE71B1888E",
+        "TOKENS": {
+            "USDT": {
+                "token": "0x81F3CFCD94E9d1C2A746CA64987f57fe662A5D00",
+                "ftoken": "0x139Fa1cc84737B10e9c1bcf6e5309eC04339f75d"
+            },
+            "USDC": {
+                "token": "0x04045D7D9c9d7E3D591b65f5140dA85e1b0F92EE",
+                "ftoken": "0xFEEdC89D4bF4f606181Ad8709d58cE182f1908b4"
+            },
+            "DAI": {
+                "token": "0x82907830fa49cDeEa0B970124A59a7d7DE0dF7c3",
+                "ftoken": "0x48dd9f0c9cAC0E9A520549312A7AD09745c742C5"
+            },
+            "BTC": {
+                "token": "0x33f4807Eedf64B1361FA1E6f19E7526E0e7fF611",
+                "ftoken": "0xc4cC0932C52e3D63D855FdBEf8050CEAc50AB6D1"
+            },
+            "ETH": {
+                "token": "0x0199DF0b2802BC38aFBA0A913Cf7a41c3aD335aF",
+                "ftoken": "0x3629B8911262726B8b1719fe81f7a52EB29246B9"
+            }
+        }
+    }
+}

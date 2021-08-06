@@ -1,5 +1,8 @@
 build
 node_modules
+ganache-cli
+
+chains_local.json
 
 .secret
 
