@@ -54,16 +54,18 @@ const func = async function (hre) {
         const balance = await mockERC20.balanceOf(deployAcc);
         console.log(`tester-${symbol}:`, ethers.utils.formatUnits(balance, decimals))
 
+        const remotePolyIds = Object.keys(Deployed['Gateways']);
         const gates = Object.values(Deployed['Gateways']).map(gates => gates[symbol]);
 
         for (let i = 0; i < gates.length; i++) {
             const gate = await ContractAt('Gateway', gates[i]);
             const debt = await vaultC.gateDebt(gate.address);
-            console.log(`debt-${i}`, debt.debt.toString(), debt.debtFlux.toString())
+            const chainName = chains._polyToName(remotePolyIds[i]);
+            console.log(`debt-${chainName}`, debt.debt.toString(), debt.debtFlux.toString())
             const pendingLength = await gate.pendingLength();
             for (let i = 0; i < pendingLength; i++) {
                 const pending = await gate.pending(i);
-                console.log(`pending-${i}:`, pending.crossId.toString(), pending.to, pending.metaAmount.toString(), pending.fee.toString(), pending.feeFlux.toString())
+                console.log(`pending-${chainName}-${i}:`, pending.crossId.toString(), pending.to, pending.metaAmount.toString(), pending.metaFee.toString(), pending.feeFlux.toString())
                 //const resp = await vaultC.callStatic.withdrawFund(pending.to, pending.metaAmount, pending.fee, pending.feeFlux, { gas: 500000 });
                 //console.log('resp:', resp);
             }

@@ -18,5 +18,7 @@ module.exports = (file, _chainId = undefined) => {
     chainRecord._name = keys[indexOf];
     chainRecord._toPolyId = _chainId => values.find(r => r.chainId == _chainId).polyId;
     chainRecord._toChainId = _polyId => values.find(r => r.polyId == _polyId).chainId;
+    chainRecord._toName = chainId => keys[values.findIndex(r => r.chainId == chainId)];
+    chainRecord._polyToName = polyId => keys[values.findIndex(r => r.polyId == polyId)];
     return chainRecord;
 }
