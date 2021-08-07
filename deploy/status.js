@@ -62,7 +62,12 @@ const func = async function (hre) {
                 //const resp = await vaultC.callStatic.withdrawFund(pending.to, pending.metaAmount, pending.fee, pending.feeFlux, { gas: 500000 });
                 //console.log('resp:', resp);
             }
-            //if (pendingLength > 0) await gate.dealPending(pendingLength);
+            /*
+            if (pendingLength > 0) {
+                await vaultC.deposit(ethers.utils.parseUnits('100', decimals));
+                await gate.dealPending(pendingLength);
+            }
+            */
             const remotePolyId = await gate.remotePolyId();
             console.log("pending:", remotePolyId.toString(), pendingLength.toString())
         }
