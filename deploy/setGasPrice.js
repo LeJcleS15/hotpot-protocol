@@ -1,7 +1,6 @@
 const record = require('../helps/record');
 const ChainsData = require('../helps/chains');
 
-const _ = undefined;
 
 Number.prototype.toAddress = function () {
     const hexStr = ethers.BigNumber.from(Number(this)).toHexString().slice(2);
@@ -20,6 +19,12 @@ function ContractAt(Contract, address) {
     );
 }
 
+const GasPirces = {
+    "79": [400000, 5e9],
+    "7": [400000, 2.5e9],
+    "200": [400000, 0.1e9],
+}
+
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
@@ -30,23 +35,15 @@ const func = async function (hre) {
     const deployAcc = accounts[0].address;
     console.log(deployAcc);
 
-    const chains = ChainsData(hre.Chains);
+    const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
-    const oracle = chains.Oracle;
-    const polyId = chains.polyId;
 
-    await deploy('Router', {
-        from: deployAcc,
-        args: [oracle, polyId.toAddress()],
-        log: true,
-        deterministicDeployment: false,
-    });
+    const router = await ContractAt('Router', Deployed.Router);
 
-    const router = await deployments.get('Router');
-    console.log('Router', router.address)
-
-    record(hre.Record, ['Router'], router.address, hre.chainId);
+    const remotePolyIds = Object.keys(Deployed.Gateways);
+    const gases = remotePolyIds.map(polyId => GasPirces[polyId]);
+    await router.setGas(remotePolyIds, gases.map(g => g[0]), gases.map(g => g[1]));
 };
 
 module.exports = func;
-func.tags = ['Router'];
+func.tags = ['Gas'];

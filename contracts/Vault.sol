@@ -64,7 +64,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
     using SafeERC20 for IERC20;
     IERC20 public override token;
     IFToken public ftoken;
-    IConfig public config;
+    IConfig public override config;
     struct GateDebt {
         int256 debt;
         int256 debtFlux;

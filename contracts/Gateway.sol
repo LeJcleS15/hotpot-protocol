@@ -74,11 +74,11 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         COMPLETED,
         REVERTED
     }
-    IConfig public config;
+    IConfig public override config;
     uint64 public override remotePolyId;
     address public remoteGateway;
     CrossStatus public bindStatus;
-    IVault public vault;
+    IVault public override vault;
     IERC20 public token;
     uint256 public nextCrossId;
     uint256 public fee;
@@ -142,7 +142,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         address to,
         uint256 amount,
         uint256 _fee,
-        int256 _feeFlux
+        int256 _feeFlux // <0: rebalance >0: crossTransfer
     ) private {
         uint256 crossId = nextCrossId++;
         uint256 metaFee = nativeToMeta(_fee);
@@ -162,10 +162,11 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(fluxAmount >= 0, "invalid flux amount");
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(config.isBalancer(from), "onlyBalancer");
-        (int256 debt, int256 debtFlux) = vault.gateDebt(address(this));
-        require(debt.add(int256(amount)) <= 0, "invalid amount");
-        require(debtFlux.add(int256(fluxAmount)) <= 0, "invalid amount");
         vault.depositFund(from, uint256(amount), fluxAmount);
+        dealPending(pending.length);
+        (int256 debt, int256 debtFlux) = vault.gateDebt(address(this));
+        require(debt <= 0, "invalid amount");
+        require(debtFlux <= 0, "invalid amount");
         _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
     }
 
@@ -230,7 +231,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
 
     function dealPending(uint256 count) public {
-        if (pending.length == 0) return;
+        if (pending.length < count) count = pending.length;
         while (count-- > 0) {
             PendingTransfer storage _pending = pending[pending.length - 1];
             if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.metaFee, _pending.feeFlux)) return;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
+import {IConfig} from "./IConfig.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 
 interface IVault {
@@ -20,4 +21,6 @@ interface IVault {
     ) external;
 
     function gateDebt(address) external view returns (int256, int256);
+
+    function config() external view returns (IConfig);
 }
