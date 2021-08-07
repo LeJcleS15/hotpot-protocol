@@ -45,6 +45,9 @@ const func = async function (hre) {
         const vault = Deployed.Vaults[symbol];
         const vaultC = await ContractAt('Vault', vault);
 
+        const totalToken = await vaultC.totalToken();
+        console.log('totalToken:', totalToken.toString())
+
         const vaultBalance = await mockERC20.balanceOf(vaultC.address);
         console.log(`Vault ${symbol} balance:`, ethers.utils.formatUnits(vaultBalance, decimals));
 
@@ -55,6 +58,8 @@ const func = async function (hre) {
 
         for (let i = 0; i < gates.length; i++) {
             const gate = await ContractAt('Gateway', gates[i]);
+            const debt = await vaultC.gateDebt(gate.address);
+            console.log(`debt-${i}`, debt.debt.toString(), debt.debtFlux.toString())
             const pendingLength = await gate.pendingLength();
             for (let i = 0; i < pendingLength; i++) {
                 const pending = await gate.pending(i);

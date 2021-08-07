@@ -21,6 +21,16 @@ async function upgradeProxy(oldAddress, Contract) {
   return upgraded;
 }
 
+/*
+export interface ValidationOptions {
+  unsafeAllowCustomTypes?: boolean;
+  unsafeAllowLinkedLibraries?: boolean;
+  unsafeAllowRenames?: boolean;
+  unsafeAllow?: ValidationError['kind'][];
+  kind?: ProxyDeployment['kind'];
+}
+*/
+
 
 module.exports = async function (hre) {
   const { getChainId } = hre;
@@ -50,7 +60,7 @@ module.exports = async function (hre) {
   for (let i = 0; i < gateways.length; i++) {
     const gateway = gateways[i];
     const oldC = await ContractAt(Contract, gateway)
-    const newC = await upgradeProxy(gateway, Contract);
+    const newC = await upgradeProxy(gateway, Contract, { unsafeAllowRenames: false });
     console.log(i, await oldC.config())
   }
   //const newC = await upgradeProxy(oldAddress, Contract);

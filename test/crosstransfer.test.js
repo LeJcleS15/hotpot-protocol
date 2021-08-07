@@ -2,8 +2,6 @@ const { expect } = require("chai");
 const { ethers, upgrades } = require('hardhat');
 const Hotpot = require('./helps/Hotpot');
 
-
-
 const testcasees = [
     {
         symbol: 'USDT',
@@ -61,14 +59,11 @@ describe("Greeter", function () {
             const afterSrcDebt = await srcVault.gateDebt(srcGateway.address);
             const afterDestDebt = await destVault.gateDebt(destGateway.address);
 
-
             const gateway = await ethers.getContractFactory('Gateway');
             var iface = gateway.interface;
             const CrossTransferSig = iface.getEventTopic('CrossTransfer');
-            //const OnCrossTransferSig = iface.getEventTopic('OnCrossTransfer');
 
             const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
-            //const onCrossEvent = receipt.logs.find(log => log.topics[0] == OnCrossTransferSig)
             const crossEvent = iface.parseLog(crossLog);
             const srcAmount = await this.srcChain.toNative(symbol, crossEvent.args.amount);
             const srcFee = await this.srcChain.toNative(symbol, crossEvent.args.fee);
@@ -90,12 +85,6 @@ describe("Greeter", function () {
             expect(beforeSrcDebt.debtFlux.add(beforeDestDebt.debtFlux)).to.equal(0);
             expect(afterSrcDebt.debt.add(afterDestDebt.debt)).to.equal(0);
             expect(afterSrcDebt.debtFlux.add(afterDestDebt.debtFlux)).to.equal(0);
-            /*
-              console.log(`${symbol} src gateDebt:`, srcDebt.debt.toString(), srcDebt.debtFlux.toString());
-  
-              const destDebt = await destVault.gateDebt(destGateway.address);
-              console.log(`${symbol} dest gateDebt:`, destDebt.debt.toString(), destDebt.debtFlux.toString());
-              */
         }
     });
 });
