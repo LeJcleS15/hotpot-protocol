@@ -74,7 +74,7 @@ class Hotpot {
         const token = await deploy('ERC20Mock', [symbol, symbol, decimals]);
         this.tokens[symbol] = token;
         await this.addVault(symbol);
-        if (price) await this.oracle.setPrice(token.address, price);
+        if (price) await this.oracle.setPrice(token.address, PRICE(price));
         return token;
     }
 

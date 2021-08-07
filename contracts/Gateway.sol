@@ -90,7 +90,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 crossId;
         address to;
         uint256 metaAmount;
-        uint256 fee;
+        uint256 metaFee;
         int256 feeFlux;
     }
     PendingTransfer[] public pending;
@@ -192,12 +192,13 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     function _onCrossTransfer(
         address to,
         uint256 metaAmount,
-        uint256 _fee,
+        uint256 metaFee,
         int256 _feeFlux
     ) private returns (bool) {
         uint256 tokenAmount = metaToNative(metaAmount);
+        uint256 tokenFee = metaToNative(metaFee);
         uint256 before = token.balanceOf(to);
-        (bool success, ) = address(vault).call(abi.encodeWithSelector(vault.withdrawFund.selector, to, tokenAmount, _fee, _feeFlux));
+        (bool success, ) = address(vault).call(abi.encodeWithSelector(vault.withdrawFund.selector, to, tokenAmount, tokenFee, _feeFlux));
         return success && token.balanceOf(to) == tokenAmount.add(before);
     }
 
@@ -209,17 +210,17 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         address from = bytesToAddress(fromAddress);
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
-        (uint256 crossId, address to, uint256 metaAmount, uint256 _fee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
+        (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
         require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
 
-        if (_onCrossTransfer(to, metaAmount, _fee, _feeFlux)) {
+        if (_onCrossTransfer(to, metaAmount, metaFee, _feeFlux)) {
             existedIds[crossId] = CrossStatus.COMPLETED;
-            emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, _fee, _feeFlux);
+            emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, metaFee, _feeFlux);
             dealPending(1);
         } else {
             existedIds[crossId] = CrossStatus.PENDING;
-            pending.push(PendingTransfer(crossId, to, metaAmount, _fee, _feeFlux));
-            emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, _fee, _feeFlux);
+            pending.push(PendingTransfer(crossId, to, metaAmount, metaFee, _feeFlux));
+            emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux);
         }
         return true;
     }
@@ -232,9 +233,9 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         if (pending.length == 0) return;
         while (count-- > 0) {
             PendingTransfer storage _pending = pending[pending.length - 1];
-            if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux)) return;
+            if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.metaFee, _pending.feeFlux)) return;
             existedIds[_pending.crossId] = CrossStatus.COMPLETED;
-            emit OnCrossTransfer(_pending.crossId, uint256(CrossStatus.COMPLETED), _pending.to, _pending.metaAmount, _pending.fee, _pending.feeFlux);
+            emit OnCrossTransfer(_pending.crossId, uint256(CrossStatus.COMPLETED), _pending.to, _pending.metaAmount, _pending.metaFee, _pending.feeFlux);
             pending.pop();
         }
     }
