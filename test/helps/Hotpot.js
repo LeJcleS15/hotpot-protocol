@@ -54,7 +54,8 @@ class Hotpot {
         this.vaults = {};
         this.gateways = {};
         this.lens = await deploy('HotpotLens', []);
-        await this.oracle.setPrice(this.flux.address, PRICE(0.5))
+        await this.oracle.setPrice(this.flux.address, PRICE(0.5));
+        await this.access.setBalancer(Hotpot.srcAccount.address, true);
     }
 
     async init(price, gas, gasPrice) {
@@ -109,6 +110,21 @@ class Hotpot {
         const remoteGateway = remoteChain.gateways[this.polyId][symbol];
         const gateway = this.gateways[remotePolyId][symbol];
         await gateway.bindGateway(remotePolyId, remoteGateway.address);
+    }
+
+    async crossRebalance(toPolyId, symbol, to, amount, fluxAmount) {
+        const srcRouer = this.router;
+        const srcToken = this.tokens[symbol];
+        const srcGateway = this.gateways[toPolyId][symbol];
+        const srcVault = this.vaults[symbol];
+        const srcFlux = this.flux;
+        const srcAccount = Hotpot.srcAccount;
+
+        await srcToken.mint(srcAccount.address, amount);
+        await srcToken.approve(srcVault.address, amount);
+        await srcFlux.mint(srcAccount.address, fluxAmount);
+        await srcFlux.approve(srcVault.address, fluxAmount);
+        return srcRouer.crossRebalance(srcGateway.address, to, amount, fluxAmount);
     }
 
     async crossTransfer(toPolyId, symbol, to, amount, useFeeFlux) {
