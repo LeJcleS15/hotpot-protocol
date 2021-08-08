@@ -29,8 +29,8 @@ contract HotpotLens {
     function getBorrowLimit(Vault vault) private view returns (uint256) {
         IFToken ftoken = IFToken(vault.ftoken());
         if (address(ftoken) == address(0)) return 0;
-        (uint256 limit, ) = ftoken.app().getBorrowLimit(address(ftoken), address(vault));
-        return limit;
+        (uint256 limit, uint256 cash) = ftoken.app().getBorrowLimit(address(ftoken), address(vault));
+        return limit < cash ? limit : cash;
     }
 
     function getVaultMeta(Vault vault, address account) public view returns (VaultMeta memory) {
