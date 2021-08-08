@@ -6,12 +6,14 @@ import "../Vault.sol";
 import "../Gateway.sol";
 import {Router} from "../Router.sol";
 import "../Config.sol";
+import {IFluxApp, IFToken} from "../interfaces/IFToken.sol";
 
 contract HotpotLens {
     struct VaultMeta {
         address token;
         uint256 totalShares;
         uint256 cash;
+        uint256 borrowLimit;
         uint256 totalToken;
         uint256 tokenPrice;
         uint256 fluxPrice;
@@ -24,6 +26,13 @@ contract HotpotLens {
         uint256 reservedFeeFlux;
     }
 
+    function getBorrowLimit(Vault vault) private view returns (uint256) {
+        IFToken ftoken = IFToken(vault.ftoken());
+        if (address(ftoken) == address(0)) return 0;
+        (uint256 limit, ) = ftoken.app().getBorrowLimit(address(ftoken), address(vault));
+        return limit;
+    }
+
     function getVaultMeta(Vault vault, address account) public view returns (VaultMeta memory) {
         IERC20 token = vault.token();
         IConfig config = vault.config();
@@ -34,6 +43,7 @@ contract HotpotLens {
                 token: address(token),
                 totalShares: vault.totalSupply(),
                 cash: token.balanceOf(address(vault)),
+                borrowLimit: getBorrowLimit(vault),
                 totalToken: vault.totalToken(),
                 tokenPrice: tokenPrice,
                 fluxPrice: fluxPrice,
@@ -72,6 +82,7 @@ contract HotpotLens {
         uint256 pendingLength;
         int256 balance;
         uint256 vaultCash;
+        uint256 vaultBorrowLimit;
         uint256 tokenPrice;
         uint256 fluxPrice;
         uint256 feeNative;
@@ -106,6 +117,7 @@ contract HotpotLens {
                 pendingLength: gateway.pendingLength(),
                 balance: debt,
                 vaultCash: temps.token.balanceOf(address(temps.vault)),
+                vaultBorrowLimit: getBorrowLimit(Vault(address(temps.vault))),
                 tokenPrice: tokenPrice,
                 fluxPrice: fluxPrice,
                 feeNative: feeNative,

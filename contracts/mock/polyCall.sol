@@ -33,7 +33,7 @@ contract PolyCall is IEthCrossChainManager, IEthCrossChainManagerProxy {
         address toContract = bytesToAddress(_toContract);
         uint64 chainID = IGateway(toContract).remotePolyId();
         emit CrossChain(chainID, msg.sender, _toChainId, toContract, _method, _txData);
-        crossHandler(keccak256(_txData), chainID, msg.sender, _toChainId, toContract, _method, _txData);
+        crossHandler(keccak256(abi.encodePacked(msg.sender, _txData)), chainID, msg.sender, _toChainId, toContract, _method, _txData);
         return true;
     }
 
