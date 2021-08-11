@@ -231,16 +231,16 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         RewardDistributor.reservedFeeFlux = RewardDistributor.reservedFeeFlux.add(amount);
     }
 
-    function withdrawReserved(
-        address to,
-        uint256 fee,
-        uint256 feeFlux
-    ) external onlyOwner {
-        require(fee <= RewardDistributor.reservedFee, "exceed fee limit");
-        require(feeFlux <= RewardDistributor.reservedFeeFlux, "exceed feeFlux limit");
-        RewardDistributor.reservedFee = 0;
-        RewardDistributor.reservedFeeFlux = 0;
-        if (fee > 0) token.safeTransfer(to, fee);
-        if (feeFlux > 0) config.FLUX().safeTransfer(to, feeFlux);
+    function withdrawReserved(address to) external onlyOwner {
+        uint256 fee = RewardDistributor.reservedFee;
+        uint256 feeFlux = RewardDistributor.reservedFeeFlux;
+        if (fee > 0) {
+            RewardDistributor.reservedFee = 0;
+            token.safeTransfer(to, fee);
+        }
+        if (feeFlux > 0) {
+            RewardDistributor.reservedFeeFlux = 0;
+            config.FLUX().safeTransfer(to, feeFlux);
+        }
     }
 }

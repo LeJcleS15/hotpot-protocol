@@ -39,6 +39,7 @@ class Hotpot {
     static accounts;
     static srcAccount;
     static destAccount;
+    static lpAccount;
 
     constructor() {
         this.polyId = Hotpot.chains.length + 1;
@@ -55,19 +56,19 @@ class Hotpot {
         this.gateways = {};
         this.lens = await deploy('HotpotLens', []);
         await this.oracle.setPrice(this.flux.address, PRICE(0.5));
-        await this.access.setBalancer(Hotpot.srcAccount.address, true);
+        return this.access.setBalancer(Hotpot.srcAccount.address, true);
     }
 
     async init(price, gas, gasPrice) {
         this.nativePrice = price;
         this.gas = gas;
         this.gasPrice = gasPrice;
-        await this.oracle.setPrice(this.polyId.toAddress(), price);
+        return this.oracle.setPrice(this.polyId.toAddress(), price);
     }
 
     async setRemoteGas(destChain) {
         await this.oracle.setPrice(destChain.polyId.toAddress(), destChain.nativePrice);
-        await this.router.setGas([destChain.polyId], [destChain.gas], [destChain.gasPrice]);
+        return this.router.setGas([destChain.polyId], [destChain.gas], [destChain.gasPrice]);
     }
 
     async addToken(symbol, decimals, price) {
@@ -109,7 +110,7 @@ class Hotpot {
         const remotePolyId = remoteChain.polyId;
         const remoteGateway = remoteChain.gateways[this.polyId][symbol];
         const gateway = this.gateways[remotePolyId][symbol];
-        await gateway.bindGateway(remotePolyId, remoteGateway.address);
+        return gateway.bindGateway(remotePolyId, remoteGateway.address);
     }
 
     async crossRebalance(toPolyId, symbol, to, amount, fluxAmount) {
@@ -146,13 +147,39 @@ class Hotpot {
         return srcRouer.crossTransfer(srcGateway.address, to, amount, maxFeeFlux);
     }
 
-    async deposit(symbol, amount) {
+    async deposit(symbol, amount, account = Hotpot.lpAccount) {
         const token = this.tokens[symbol];
         const vault = this.vaults[symbol];
-        const account = Hotpot.srcAccount;
         await token.mint(account.address, amount);
-        await token.approve(vault.address, amount);
-        await vault.deposit(amount);
+        await token.connect(account).approve(vault.address, amount);
+        return vault.connect(account).deposit(amount);
+    }
+
+    async withdraw(symbol, share, account = Hotpot.lpAccount) {
+        const vault = this.vaults[symbol];
+        return vault.connect(account).withdraw(share);
+    }
+
+    async harvestFlux(symbol, account) {
+        const vault = this.vaults[symbol];
+        return vault.connect(account).harvest();
+    }
+
+    async withdrawReserved(symbol, to, account = Hotpot.srcAccount) {
+        const vault = this.vaults[symbol];
+        return vault.connect(account).withdrawReserved(to);
+    }
+
+    async shareToAmount(share, totalShare, totalToken) {
+        totalShare = totalShare || await vault.totalSupply();
+        totalToken = totalToken || await vault.totalToken();
+        return share.mul(totalToken).div(totalShare);
+    }
+
+    async amountToShare(amount, totalShare, totalToken) {
+        totalShare = totalShare || await vault.totalSupply();
+        totalToken = totalToken || await vault.totalToken();
+        return amount.mul(totalShare).div(totalToken);
     }
 
     async toMeta(symbol, amount) {
@@ -181,6 +208,7 @@ class Hotpot {
             Hotpot.accounts = await ethers.getSigners();
             Hotpot.srcAccount = this.accounts[0];
             Hotpot.destAccount = this.accounts[1];
+            Hotpot.lpAccount = this.accounts[2];
         }
         await hotpot.deploy();
         await hotpot.init(price, 0, 0);
@@ -215,7 +243,7 @@ class Hotpot {
     }
 
     static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux) {
-        await destChain.deposit(symbol, amount);
+        //await destChain.deposit(symbol, amount);
         return srcChain.crossTransfer(destChain.polyId, symbol, to, amount, useFeeFlux);
     }
 

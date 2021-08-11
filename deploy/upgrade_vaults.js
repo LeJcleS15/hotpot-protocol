@@ -50,8 +50,8 @@ module.exports = async function (hre) {
     const vault = vaults[i];
     const oldC = await ContractAt(Contract, vault)
     const newC = await upgradeProxy(vault, Contract);
-    await newC.fix(Deployed.Config);
-    console.log(i, await oldC.config())
+    //await newC.fix(Deployed.Config);
+    //console.log(i, await oldC.config())
   }
   //const newC = await upgradeProxy(oldAddress, Contract);
   //const newC = await ContractAt(Contract, oldAddress)

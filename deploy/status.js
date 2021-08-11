@@ -32,7 +32,7 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     const chains = ChainsData(hre.Chains);
     const oracle = await ContractAt('IPriceOracle', chains.Oracle);
-    const keys = Object.keys(chains.TOKENS).filter(key => key == 'BTC');
+    const keys = Object.keys(chains.TOKENS).filter(key => key == 'USDC');
 
     for (let ti = 0; ti < keys.length; ti++) {
         const symbol = keys[ti];
@@ -44,6 +44,29 @@ const func = async function (hre) {
 
         const vault = Deployed.Vaults[symbol];
         const vaultC = await ContractAt('Vault', vault);
+        const ftoken = await vaultC.ftoken();
+        if (ftoken != ethers.constants.AddressZero) {
+            const IFToken = await ContractAt('IFToken', ftoken);
+            const app = await IFToken.app();
+            const IFluxApp = await ContractAt('IFluxApp', app);
+            const borrowLimit = await IFluxApp.getBorrowLimit(ftoken, vault);
+            const fbalance = await mockERC20.balanceOf(ftoken);
+            console.log('ftoken:',
+                ethers.utils.formatUnits(fbalance, decimals),
+                ethers.utils.formatUnits(borrowLimit.limit, decimals),
+                ethers.utils.formatUnits(borrowLimit.cash, decimals))
+
+            //await IFToken.connect(vault).callStatic.borrow('20000000000000000000');
+        }
+
+        const users = ['0x0818b8938FCD0a253ccDeDE9eC417277D3ca11E3', '0x054af6202f2419295c554500f0ED1dc2F9e9569A'];
+        for (let i = 0; i < users.length; i++) {
+            const user = users[i];
+            const pendingReward = await vaultC.pendingReward(user);
+            console.log('pendingReward:', i, pendingReward.toString());
+        }
+        const reservedFeeFlux = await vaultC.reservedFeeFlux();
+        console.log('reservedFeeFlux:', reservedFeeFlux.toString());
 
         const totalToken = await vaultC.totalToken();
         console.log('totalToken:', totalToken.toString())
@@ -61,7 +84,9 @@ const func = async function (hre) {
             const gate = await ContractAt('Gateway', gates[i]);
             const debt = await vaultC.gateDebt(gate.address);
             const chainName = chains._polyToName(remotePolyIds[i]);
-            console.log(`debt-${chainName}`, debt.debt.toString(), debt.debtFlux.toString())
+            console.log(`debt-${chainName}`,
+                ethers.utils.formatUnits(debt.debt, decimals),
+                ethers.utils.formatUnits(debt.debtFlux, decimals));
             const pendingLength = await gate.pendingLength();
             for (let i = 0; i < pendingLength; i++) {
                 const pending = await gate.pending(i);
@@ -69,12 +94,12 @@ const func = async function (hre) {
                 //const resp = await vaultC.callStatic.withdrawFund(pending.to, pending.metaAmount, pending.fee, pending.feeFlux, { gas: 500000 });
                 //console.log('resp:', resp);
             }
-            /*
+
             if (pendingLength > 0) {
-                await vaultC.deposit(ethers.utils.parseUnits('100', decimals));
+                //await vaultC.deposit(ethers.utils.parseUnits('100', decimals));
                 await gate.dealPending(pendingLength);
             }
-            */
+
             const remotePolyId = await gate.remotePolyId();
             console.log("pending:", remotePolyId.toString(), pendingLength.toString())
         }
@@ -92,7 +117,9 @@ const func = async function (hre) {
         }
     */
     const fluxBalance = await FLUX.balanceOf(deployAcc);
+    const fluxVaultBalance = await FLUX.balanceOf(vault);
     console.log('flux balance:', ethers.utils.formatUnits(fluxBalance, 18), fluxBalance.toString());
+    console.log('flux vault balance:', ethers.utils.formatUnits(fluxVaultBalance, 18), fluxVaultBalance.toString());
 };
 
 module.exports = func;

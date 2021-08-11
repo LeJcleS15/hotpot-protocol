@@ -14,13 +14,13 @@ upgradeLens() {
 export NETENV=TESTNET
 npx hardhat compile
 
-NETWORK=ok_test upgradeGateways
-NETWORK=heco_test upgradeGateways
-NETWORK=bsc_test upgradeGateways
+#NETWORK=ok_test upgradeGateways
+#NETWORK=heco_test upgradeGateways
+#NETWORK=bsc_test upgradeGateways
 
-#NETWORK=ok_test upgradeVaults
-#NETWORK=heco_test upgradeVaults
-#NETWORK=bsc_test upgradeVaults
+NETWORK=ok_test upgradeVaults
+NETWORK=heco_test upgradeVaults
+NETWORK=bsc_test upgradeVaults
 
 #NETWORK=ok_test upgradeLens
 #NETWORK=heco_test upgradeLens
