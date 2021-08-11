@@ -27,19 +27,25 @@ abstract contract RewardDistributor {
     uint256 public reservedFee;
     uint256 public constant RESERVED_POINT = 3000;
     uint256 public constant RESERVED_DENOM = 10000;
+    uint256 private constant PER_SHARE_SACLE = 1e18;
 
     function updateIncome(uint256 feeFlux, uint256 totalShares) internal {
         uint256 reserved = totalShares == 0 ? feeFlux : feeFlux.mul(RESERVED_POINT).div(RESERVED_DENOM);
-        reservedFeeFlux = reservedFeeFlux.add(reserved);
         uint256 remain = feeFlux.sub(reserved);
-        if (remain > 0) rewardFluxPerShareStored = rewardFluxPerShareStored.add(remain.mul(1e18).div(totalShares));
+        if (remain > 0) {
+            uint256 deltaPerShare = remain.mul(PER_SHARE_SACLE).div(totalShares);
+            rewardFluxPerShareStored = rewardFluxPerShareStored.add(deltaPerShare);
+            uint256 tiny = remain.sub(deltaPerShare.mul(totalShares).div(PER_SHARE_SACLE));
+            reserved = reserved.add(tiny);
+        }
+        reservedFeeFlux = reservedFeeFlux.add(reserved);
     }
 
     function pendingReward(address account, uint256 shares) internal view returns (uint256) {
         UserRewards storage _reward = rewards[account];
         uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
         uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
-        return shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
+        return shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(PER_SHARE_SACLE).add(_reward.rewardFlux);
     }
 
     function updateReward(address account, uint256 shares) internal {
@@ -47,7 +53,7 @@ abstract contract RewardDistributor {
         uint256 userrewardFluxPerShare = _reward.rewardFluxPerShare;
         uint256 _rewardFluxPerShareStored = rewardFluxPerShareStored;
         if (userrewardFluxPerShare != _rewardFluxPerShareStored) {
-            _reward.rewardFlux = shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(1e18).add(_reward.rewardFluxPerShare);
+            _reward.rewardFlux = shares.mul(_rewardFluxPerShareStored.sub(userrewardFluxPerShare)).div(PER_SHARE_SACLE).add(_reward.rewardFlux);
             _reward.rewardFluxPerShare = rewardFluxPerShareStored;
         }
     }
@@ -116,7 +122,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
             uint256 before = token.balanceOf(address(this));
             // should tranfer token to user
             // 忽略执行成功与否
-            address(_ftoken).call(abi.encodeWithSelector(_ftoken.borrow.selector, address(this), amount));
+            address(_ftoken).call(abi.encodeWithSelector(_ftoken.borrow.selector, amount));
             return token.balanceOf(address(this)) == before.add(amount);
         }
         return false;
@@ -183,7 +189,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
             debt.debtFlux = debt.debtFlux.add(int256(feeFlux));
         }
         debt.debt = debt.debt.add(int256(amount));
-        repayToken();
+        //repayToken();
     }
 
     function _beforeTokenTransfer(
@@ -201,7 +207,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         uint256 share = totalToken == 0 ? amount : totalShares.mul(amount).div(totalToken);
         totalToken = totalToken.add(amount);
         ERC20UpgradeSafe._mint(user, share);
-        repayToken();
+        //repayToken();
     }
 
     function deposit(uint256 amount) external {
