@@ -16,6 +16,8 @@ interface IConfig {
 
     function isBalancer(address balancer) external view returns (bool);
 
+    function isHotpoter(address hotpoter) external view returns (bool);
+
     function isRouter(address) external view returns (bool);
 
     function feePrice(address token) external view returns (uint256, uint256);

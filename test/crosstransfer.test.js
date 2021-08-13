@@ -155,16 +155,18 @@ describe("Cross Test", function () {
             const tx = await Hotpot.CrossTransfer(srcChain, destChain, symbol, to, amount, casei.useFeeFlux);
 
             const receipt = await tx.wait(0);
+            const iface = await ethers.getContractFactory('Gateway').then(gateway => gateway.interface);
+            const CrossTransferSig = iface.getEventTopic('CrossTransfer');
+            const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
+            const crossEvent = iface.parseLog(crossLog);
+
+            const abi = new ethers.utils.AbiCoder();
+            const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
+            await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
 
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
             const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
 
-            const gateway = await ethers.getContractFactory('Gateway');
-            var iface = gateway.interface;
-            const CrossTransferSig = iface.getEventTopic('CrossTransfer');
-
-            const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
-            const crossEvent = iface.parseLog(crossLog);
             const srcAmount = await srcChain.toNative(symbol, crossEvent.args.amount);
             const srcFee = await srcChain.toNative(symbol, crossEvent.args.fee);
             const destAmount = await destChain.toNative(symbol, crossEvent.args.amount);
@@ -208,10 +210,19 @@ describe("Cross Test", function () {
             const amount = beforeSrc.vault.gateDebt.debt.abs();
             const fluxAmount = beforeSrc.vault.gateDebt.debtFlux.abs();
 
-            const tx = await srcChain.crossRebalance(destChain.polyId, symbol, to, amount, fluxAmount);
+            let txOnTransfer;
+            {
+                const tx = await srcChain.crossRebalance(destChain.polyId, symbol, to, amount, fluxAmount);
+                const receipt = await tx.wait(0);
+                const iface = await ethers.getContractFactory('Gateway').then(gateway => gateway.interface);
+                const CrossTransferSig = iface.getEventTopic('CrossTransfer');
+                const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
+                const crossEvent = iface.parseLog(crossLog);
 
-            const receipt = await tx.wait(0);
-
+                const abi = new ethers.utils.AbiCoder();
+                const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
+                txOnTransfer = await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
+            }
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
             const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
 
@@ -223,7 +234,7 @@ describe("Cross Test", function () {
             const gateway = await ethers.getContractFactory('Gateway');
             var iface = gateway.interface;
             const OnCrossTransferSig = iface.getEventTopic('OnCrossTransfer');
-
+            const receipt = await txOnTransfer.wait(0);
             const crossLog = receipt.logs.find(log => log.topics[0] == OnCrossTransferSig)
             const crossEvent = iface.parseLog(crossLog);
             const srcAmount = await srcChain.toNative(symbol, crossEvent.args.amount);

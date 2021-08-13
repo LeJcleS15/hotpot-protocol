@@ -47,6 +47,10 @@ contract Config is OwnableUpgradeSafe, IConfig {
         return access.isBalancer(balancer);
     }
 
+    function isHotpoter(address hotpoter) external view override returns (bool) {
+        return access.isHotpoter(hotpoter);
+    }
+
     function bindVault(address vault, address gateway) external onlyOwner {
         boundVault[gateway] = vault;
     }

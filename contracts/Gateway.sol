@@ -68,6 +68,10 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
+    enum Relayer {
+        POLY,
+        HOTPOT
+    }
     enum CrossStatus {
         NONE,
         PENDING,
@@ -94,9 +98,16 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         int256 feeFlux;
     }
     PendingTransfer[] public pending;
+    mapping(bytes32 => uint256) public crossConfirms;
+    uint256 public constant CONFIRM_THRESHOLD = 2;
 
     modifier onlyRouter() {
         require(config.isRouter(msg.sender), "onlyRouter");
+        _;
+    }
+
+    modifier onlyHotpoter() {
+        require(config.isHotpoter(msg.sender), "onlyHotpoter");
         _;
     }
 
@@ -135,6 +146,22 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint8 metaDecimals = decimals;
         require(tokenDecimals <= metaDecimals, "HotpotGate::unsupported decimals");
         return amount.div(10**uint256(metaDecimals - tokenDecimals));
+    }
+
+    function countSetBits(uint256 bitmap) private pure returns (uint256) {
+        uint256 count = 0;
+        while (bitmap > 0) {
+            bitmap &= (bitmap - 1);
+            count++;
+        }
+        return count;
+    }
+
+    function crossConfirm(bytes memory crossData, Relayer role) private returns (bool) {
+        bytes32 sig = keccak256(crossData);
+        uint256 bitmap = crossConfirms[sig] | (1 << uint256(role));
+        crossConfirms[sig] = bitmap;
+        return countSetBits(bitmap) >= CONFIRM_THRESHOLD;
     }
 
     function _crossTransfer(
@@ -203,16 +230,10 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return success && token.balanceOf(to) == tokenAmount.add(before);
     }
 
-    function onCrossTransfer(
-        bytes calldata data,
-        bytes calldata fromAddress,
-        uint64 fromPolyId
-    ) external onlyManagerContract returns (bool) {
-        address from = bytesToAddress(fromAddress);
-        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
+    function onCrossTransferExecute(bytes memory data) private {
         (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
-        require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
+        if (existedIds[crossId] != CrossStatus.NONE) return;
+        //require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
 
         if (_onCrossTransfer(to, metaAmount, metaFee, _feeFlux)) {
             existedIds[crossId] = CrossStatus.COMPLETED;
@@ -223,6 +244,29 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
             pending.push(PendingTransfer(crossId, to, metaAmount, metaFee, _feeFlux));
             emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux);
         }
+    }
+
+    function onCrossTransfer(
+        bytes calldata data,
+        bytes calldata fromAddress,
+        uint64 fromPolyId
+    ) external onlyManagerContract returns (bool) {
+        address from = bytesToAddress(fromAddress);
+        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
+        require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
+        if (crossConfirm(data, Relayer.POLY)) onCrossTransferExecute(data);
+        return true;
+    }
+
+    function onCrossTransferByHotpoter(
+        bytes calldata data,
+        address fromAddress,
+        uint64 fromPolyId
+    ) external onlyHotpoter returns (bool) {
+        address from = fromAddress;
+        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
+        require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
+        if (crossConfirm(data, Relayer.HOTPOT)) onCrossTransferExecute(data);
         return true;
     }
 

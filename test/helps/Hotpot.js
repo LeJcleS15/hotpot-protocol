@@ -56,7 +56,8 @@ class Hotpot {
         this.gateways = {};
         this.lens = await deploy('HotpotLens', []);
         await this.oracle.setPrice(this.flux.address, PRICE(0.5));
-        return this.access.setBalancer(Hotpot.srcAccount.address, true);
+        await this.access.setBalancer(Hotpot.srcAccount.address, true);
+        return this.access.setHotpoter(Hotpot.srcAccount.address, true);
     }
 
     async init(price, gas, gasPrice) {
@@ -145,6 +146,11 @@ class Hotpot {
             await srcFlux.approve(srcVault.address, maxFeeFlux);
         }
         return srcRouer.crossTransfer(srcGateway.address, to, amount, maxFeeFlux);
+    }
+
+    async onCrossTransferByHotpoter(symbol, data, fromAddress, fromPolyId, account = Hotpot.srcAccount) {
+        const gateway = this.gateways[fromPolyId][symbol];
+        return gateway.connect(account).onCrossTransferByHotpoter(data, fromAddress, fromPolyId);
     }
 
     async deposit(symbol, amount, account = Hotpot.lpAccount) {

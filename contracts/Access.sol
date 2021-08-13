@@ -7,6 +7,7 @@ import {IAccess} from "./interfaces/IAccess.sol";
 
 contract Access is AccessControlUpgradeSafe, IAccess {
     bytes32 public constant BALANCER_ROLE = keccak256("BALANCER_ROLE");
+    bytes32 public constant HOTPOTER_ROLE = keccak256("HOTPOTER_ROLE");
 
     function initialize() external initializer {
         __AccessControl_init_unchained();
@@ -20,5 +21,14 @@ contract Access is AccessControlUpgradeSafe, IAccess {
 
     function isBalancer(address balancer) external view override returns (bool) {
         return hasRole(BALANCER_ROLE, balancer);
+    }
+
+    function setHotpoter(address hotpoter, bool enable) external {
+        if (enable) grantRole(HOTPOTER_ROLE, hotpoter);
+        else revokeRole(HOTPOTER_ROLE, hotpoter);
+    }
+
+    function isHotpoter(address hotpoter) external view override returns (bool) {
+        return hasRole(HOTPOTER_ROLE, hotpoter);
     }
 }
