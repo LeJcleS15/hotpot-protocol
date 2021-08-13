@@ -10,7 +10,7 @@ module.exports = (file, _chainId = undefined) => {
     const keys = Object.keys(record);
     const values = Object.values(record);
     const indexOf = values.findIndex(r => r.chainId == chainId);
-    if (indexOf < 0) throw "chain not found";
+    if (indexOf < 0) throw `chain not found: ${recordFile} ${chainId}`;
 
     const chainRecord = { ...values[indexOf] };
     chainRecord._path = _path => _path.reduce((node, key) => node && node[key], chainRecord);

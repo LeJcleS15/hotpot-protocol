@@ -5,6 +5,8 @@ ganache-cli
 chains_local.json
 test/.openzeppelin/*
 
+*31337*
+
 .secret
 
 *typechain*

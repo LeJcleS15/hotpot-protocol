@@ -32,7 +32,9 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     const chains = ChainsData(hre.Chains);
     const oracle = await ContractAt('IPriceOracle', chains.Oracle);
-    const keys = Object.keys(chains.TOKENS).filter(key => key == 'USDC');
+    const keys = Object.keys(chains.TOKENS).filter(key => key == 'ETH');
+
+    const FLUX = await ContractAt('ERC20Mock', chains.FLUX);
 
     for (let ti = 0; ti < keys.length; ti++) {
         const symbol = keys[ti];
@@ -71,9 +73,11 @@ const func = async function (hre) {
         const totalToken = await vaultC.totalToken();
         console.log('totalToken:', totalToken.toString())
 
+
+        const fluxVaultBalance = await FLUX.balanceOf(vault);
         const vaultBalance = await mockERC20.balanceOf(vaultC.address);
         console.log(`Vault ${symbol} balance:`, ethers.utils.formatUnits(vaultBalance, decimals));
-
+        console.log('flux vault balance:', ethers.utils.formatUnits(fluxVaultBalance, 18), fluxVaultBalance.toString());
         const balance = await mockERC20.balanceOf(deployAcc);
         console.log(`tester-${symbol}:`, ethers.utils.formatUnits(balance, decimals))
 
@@ -105,7 +109,6 @@ const func = async function (hre) {
         }
     }
 
-    const FLUX = await ContractAt('ERC20Mock', chains.FLUX);
     const fluxPrice = await oracle.getPriceMan(FLUX.address);
     console.log('FLUX-price:', ethers.utils.formatUnits(fluxPrice, 18));
     /*
@@ -117,9 +120,7 @@ const func = async function (hre) {
         }
     */
     const fluxBalance = await FLUX.balanceOf(deployAcc);
-    const fluxVaultBalance = await FLUX.balanceOf(vault);
     console.log('flux balance:', ethers.utils.formatUnits(fluxBalance, 18), fluxBalance.toString());
-    console.log('flux vault balance:', ethers.utils.formatUnits(fluxVaultBalance, 18), fluxVaultBalance.toString());
 };
 
 module.exports = func;
