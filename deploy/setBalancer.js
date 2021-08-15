@@ -34,8 +34,9 @@ const func = async function (hre) {
 
     const balancer = '0x6F431c9039216DCc5E65c00BCC7FD1C8e1048440';
     const Access = await ContractAt('Access', Deployed.Access);
-    await Access.setBalancer(balancer, true);
-    console.log('isBalancer:', await Access.isBalancer(balancer));
+    //await Access.setBalancer(balancer, true);
+    await Access.setHotpoter(balancer, true);
+    console.log('isHotpoter:', await Access.isHotpoter(balancer));
 };
 
 module.exports = func;
