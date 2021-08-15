@@ -89,6 +89,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     uint256 public constant FEE_DENOM = 10000;
     mapping(uint256 => CrossStatus) public existedIds;
     uint8 public constant decimals = 18;
+    bytes constant CROSS_METHOD = "unlock"; //"onCrossTransfer";
 
     struct PendingTransfer {
         uint256 crossId;
@@ -161,6 +162,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         bytes32 sig = keccak256(crossData);
         uint256 bitmap = crossConfirms[sig] | (1 << uint256(role));
         crossConfirms[sig] = bitmap;
+        emit CrossConfirm(sig, uint256(role), bitmap);
         return countSetBits(bitmap) >= CONFIRM_THRESHOLD;
     }
 
@@ -175,7 +177,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaFee = nativeToMeta(_fee);
         uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
         bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux);
-        CrossBase.crossTo(remotePolyId, remoteGateway, "onCrossTransfer", txData);
+        CrossBase.crossTo(remotePolyId, remoteGateway, CROSS_METHOD, txData);
         (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
         emit CrossTransfer(crossId, from, to, metaAmount, metaFee, _feeFlux, tokenPrice, fluxPrice);
     }
@@ -246,11 +248,20 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         }
     }
 
+    // required by poly
+    function unlock(
+        bytes calldata data,
+        bytes calldata fromAddress,
+        uint64 fromPolyId
+    ) external returns (bool) {
+        return onCrossTransfer(data, fromAddress, fromPolyId);
+    }
+
     function onCrossTransfer(
         bytes calldata data,
         bytes calldata fromAddress,
         uint64 fromPolyId
-    ) external onlyManagerContract returns (bool) {
+    ) public onlyManagerContract returns (bool) {
         address from = bytesToAddress(fromAddress);
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
