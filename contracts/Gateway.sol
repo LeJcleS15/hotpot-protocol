@@ -100,7 +100,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
     PendingTransfer[] public pending;
     mapping(bytes32 => uint256) public crossConfirms;
-    uint256 public constant CONFIRM_THRESHOLD = 1;
+    uint256 public constant CONFIRM_THRESHOLD = 2;
 
     modifier onlyRouter() {
         require(config.isRouter(msg.sender), "onlyRouter");
