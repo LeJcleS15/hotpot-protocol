@@ -89,7 +89,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     uint256 public constant FEE_DENOM = 10000;
     mapping(uint256 => CrossStatus) public existedIds;
     uint8 public constant decimals = 18;
-    bytes constant CROSS_METHOD = "unlock"; //"onCrossTransfer";
+    bytes constant CROSS_METHOD = "onCrossTransfer";
 
     struct PendingTransfer {
         uint256 crossId;
@@ -100,7 +100,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
     PendingTransfer[] public pending;
     mapping(bytes32 => uint256) public crossConfirms;
-    uint256 public constant CONFIRM_THRESHOLD = 2;
+    uint256 public constant CONFIRM_THRESHOLD = 1;
 
     modifier onlyRouter() {
         require(config.isRouter(msg.sender), "onlyRouter");
@@ -246,15 +246,6 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
             pending.push(PendingTransfer(crossId, to, metaAmount, metaFee, _feeFlux));
             emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux);
         }
-    }
-
-    // required by poly
-    function unlock(
-        bytes calldata data,
-        bytes calldata fromAddress,
-        uint64 fromPolyId
-    ) external returns (bool) {
-        return onCrossTransfer(data, fromAddress, fromPolyId);
     }
 
     function onCrossTransfer(
