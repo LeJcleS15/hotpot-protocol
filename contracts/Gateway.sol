@@ -211,7 +211,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         if (maxFluxFee > 0) {
             _feeFlux = config.feeFlux(address(token), _fee);
             _fee = 0;
-            require(_feeFlux <= maxFluxFee, "execeed flux fee limit!");
+            require(_feeFlux <= maxFluxFee, "exceed flux fee limit!");
         }
         vault.depositFund(from, amount, _feeFlux);
         require(_feeFlux < uint256(type(int256).max), "invalid fee");

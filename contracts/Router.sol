@@ -32,10 +32,10 @@ contract Router is Ownable, ReentrancyGuard, Pausable {
     function setGas(
         uint64[] calldata polyIds,
         uint256[] calldata gasLimit,
-        uint256[] calldata gasPirce
+        uint256[] calldata gasPrice
     ) external onlyOwner {
         for (uint256 i = 0; i < polyIds.length; i++) {
-            gas[polyIds[i]] = Gas(gasLimit[i], gasPirce[i]);
+            gas[polyIds[i]] = Gas(gasLimit[i], gasPrice[i]);
         }
     }
 
