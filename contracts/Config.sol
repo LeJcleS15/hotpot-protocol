@@ -14,6 +14,8 @@ import {IEthCrossChainManagerProxy} from "./interfaces/poly/IEthCrossChainManage
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 import {IConfig} from "./interfaces/IConfig.sol";
 
+import {IExtCaller} from "./interfaces/IExtCaller.sol";
+
 contract Config is OwnableUpgradeSafe, IConfig {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -23,6 +25,7 @@ contract Config is OwnableUpgradeSafe, IConfig {
     address public router;
     IPriceOracle public oracle;
     mapping(address => address) public override boundVault; // gateway=>vaults
+    IExtCaller public override caller;
 
     function initialize(
         IEthCrossChainManagerProxy _ccmp,
@@ -70,5 +73,9 @@ contract Config is OwnableUpgradeSafe, IConfig {
         uint8 fluxDecimals = ERC20UpgradeSafe(address(FLUX)).decimals();
         uint256 _feeFlux = fee.mul(10**uint256(fluxDecimals - tokenDecimals)).mul(_feePrice).div(fluxPrice);
         return (_feeFlux * 80) / 100;
+    }
+
+    function setCaller(IExtCaller _caller) external onlyOwner {
+        caller = _caller;
     }
 }

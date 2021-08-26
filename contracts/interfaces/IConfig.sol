@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 import {IERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 
 import {IEthCrossChainManager} from "./poly/IEthCrossChainManager.sol";
+import {IExtCaller} from "./IExtCaller.sol";
 
 interface IConfig {
     function FLUX() external view returns (IERC20);
@@ -21,4 +22,6 @@ interface IConfig {
     function isRouter(address) external view returns (bool);
 
     function feePrice(address token) external view returns (uint256, uint256);
+
+    function caller() external view returns (IExtCaller);
 }

@@ -13,6 +13,7 @@ import {IEthCrossChainManager} from "./interfaces/poly/IEthCrossChainManager.sol
 import {IConfig} from "./interfaces/IConfig.sol";
 import {IGateway} from "./interfaces/IGateway.sol";
 import {IVault} from "./interfaces/IVault.sol";
+import {IExtCaller} from "./interfaces/IExtCaller.sol";
 
 abstract contract CrossBase {
     function getEthCrossChainManager() internal view virtual returns (IEthCrossChainManager);
@@ -78,6 +79,10 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         COMPLETED,
         REVERTED
     }
+    enum CrossType {
+        TRANSFER,
+        TRANSFER_WITH_DATA
+    }
     IConfig public override config;
     uint64 public override remotePolyId;
     address public remoteGateway;
@@ -91,6 +96,8 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     uint8 public constant decimals = 18;
     bytes constant CROSS_METHOD = "onCrossTransfer";
 
+    uint256 constant CROSS_TYPE_OFFSET = 256 - 64;
+
     struct PendingTransfer {
         uint256 crossId;
         address to;
@@ -98,7 +105,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaFee;
         int256 feeFlux;
     }
-    PendingTransfer[] public pending;
+    bytes[] public pending;
     mapping(bytes32 => uint256) public crossConfirms;
     uint256 public constant CONFIRM_THRESHOLD = 2;
 
@@ -173,13 +180,32 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 _fee,
         int256 _feeFlux // <0: rebalance >0: crossTransfer
     ) private {
-        uint256 crossId = nextCrossId++;
+        uint256 crossId = (uint256(CrossType.TRANSFER) << CROSS_TYPE_OFFSET) | nextCrossId++;
         uint256 metaFee = nativeToMeta(_fee);
         uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
         bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux);
         CrossBase.crossTo(remotePolyId, remoteGateway, CROSS_METHOD, txData);
         (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
         emit CrossTransfer(crossId, from, to, metaAmount, metaFee, _feeFlux, tokenPrice, fluxPrice);
+    }
+
+    function _crossTransferWithData(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 _fee,
+        int256 _feeFlux, // <0: rebalance >0: crossTransfer
+        bytes memory data
+    ) private {
+        uint256 crossId = (uint256(CrossType.TRANSFER_WITH_DATA) << CROSS_TYPE_OFFSET) | nextCrossId++;
+        uint256 metaFee = nativeToMeta(_fee);
+        uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
+        bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux, from, data);
+
+        CrossBase.crossTo(remotePolyId, remoteGateway, CROSS_METHOD, txData);
+
+        (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
+        emit CrossTransferWithData(crossId, from, to, metaAmount, metaFee, _feeFlux, tokenPrice, fluxPrice, data);
     }
 
     function crossRebalanceFrom(
@@ -197,6 +223,27 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(debt <= 0, "invalid amount");
         require(debtFlux <= 0, "invalid amount");
         _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
+    }
+
+    function crossTransferFrom(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 maxFluxFee,
+        bytes calldata data
+    ) external override onlyRouter {
+        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
+        uint256 _fee = amount.mul(fee).div(FEE_DENOM);
+        uint256 _feeFlux;
+        if (maxFluxFee > 0) {
+            _feeFlux = config.feeFlux(address(token), _fee);
+            _fee = 0;
+            require(_feeFlux <= maxFluxFee, "exceed flux fee limit!");
+        }
+        vault.depositFund(from, amount, _feeFlux);
+        require(_feeFlux < uint256(type(int256).max), "invalid fee");
+        _crossTransferWithData(from, to, amount, _fee, int256(_feeFlux), data);
+        dealPending(1);
     }
 
     function crossTransferFrom(
@@ -232,20 +279,60 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return success && token.balanceOf(to) == tokenAmount.add(before);
     }
 
-    function onCrossTransferExecute(bytes memory data) private {
-        (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
-        if (existedIds[crossId] != CrossStatus.NONE) return;
-        //require(existedIds[crossId] == CrossStatus.NONE, "existed crossId");
-
-        if (_onCrossTransfer(to, metaAmount, metaFee, _feeFlux)) {
-            existedIds[crossId] = CrossStatus.COMPLETED;
-            emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, metaFee, _feeFlux);
-            dealPending(1);
-        } else {
-            existedIds[crossId] = CrossStatus.PENDING;
-            pending.push(PendingTransfer(crossId, to, metaAmount, metaFee, _feeFlux));
-            emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux);
+    function _onCrossTransferWithData(
+        address from,
+        address to,
+        uint256 metaAmount,
+        uint256 metaFee,
+        int256 _feeFlux,
+        bytes memory data
+    ) private returns (bool) {
+        bool success = _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
+        if (success) {
+            uint256 tokenAmount = metaToNative(metaAmount);
+            address(config.caller()).call(abi.encodeWithSelector(IExtCaller.callExt.selector, to, remotePolyId, from, token, tokenAmount, data));
         }
+        return success;
+    }
+
+    function _onCrossTransferExecute(bytes memory data) private returns (CrossStatus) {
+        (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
+        CrossStatus status = existedIds[crossId]; // status != COMPLETE
+        if (_onCrossTransfer(to, metaAmount, metaFee, _feeFlux)) {
+            status = existedIds[crossId] = CrossStatus.COMPLETED;
+            emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, metaFee, _feeFlux);
+        } else if (status == CrossStatus.NONE) {
+            status = existedIds[crossId] = CrossStatus.PENDING;
+            emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux);
+            pending.push(data);
+        }
+        return status;
+    }
+
+    function _onCrossTransferWithDataExecute(bytes memory data) private returns (CrossStatus) {
+        (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux, address from, bytes memory extData) = abi.decode(
+            data,
+            (uint256, address, uint256, uint256, int256, address, bytes)
+        );
+        CrossStatus status = existedIds[crossId]; // status != COMPLETE
+        if (_onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData)) {
+            status = existedIds[crossId] = CrossStatus.COMPLETED;
+            emit OnCrossTransferWithData(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, metaFee, _feeFlux, from, extData);
+        } else if (status == CrossStatus.NONE) {
+            status = existedIds[crossId] = CrossStatus.PENDING;
+            emit OnCrossTransferWithData(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux, from, extData);
+            pending.push(data);
+        }
+        return status;
+    }
+
+    // DANGER: Do not call dealPending in onCrossTransferExecute!
+    function onCrossTransferExecute(bytes memory data) private returns (CrossStatus) {
+        uint256 crossId = abi.decode(data, (uint256));
+        CrossStatus status = existedIds[crossId];
+        if (status == CrossStatus.COMPLETED) return status;
+
+        return CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
     }
 
     function onCrossTransfer(
@@ -276,14 +363,15 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return pending.length;
     }
 
+    // DANGER: Do not call this in onCrossTransferExecute!
     function dealPending(uint256 count) public {
         if (pending.length < count) count = pending.length;
         while (count-- > 0) {
-            PendingTransfer storage _pending = pending[pending.length - 1];
-            if (!_onCrossTransfer(_pending.to, _pending.metaAmount, _pending.metaFee, _pending.feeFlux)) return;
-            existedIds[_pending.crossId] = CrossStatus.COMPLETED;
-            emit OnCrossTransfer(_pending.crossId, uint256(CrossStatus.COMPLETED), _pending.to, _pending.metaAmount, _pending.metaFee, _pending.feeFlux);
-            pending.pop();
+            if (onCrossTransferExecute(pending[pending.length - 1]) == CrossStatus.COMPLETED) {
+                pending.pop();
+            } else {
+                break;
+            }
         }
     }
 }

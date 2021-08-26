@@ -55,6 +55,9 @@ class Hotpot {
         this.vaults = {};
         this.gateways = {};
         this.lens = await deploy('HotpotLens', []);
+        this.caller = await deploy('ExtCaller', [this.config.address]);
+        await this.config.setCaller(this.caller.address);
+        this.callee = await deploy('Callee', [this.config.address]);
         await this.oracle.setPrice(this.flux.address, PRICE(0.5));
         await this.access.setBalancer(Hotpot.srcAccount.address, true);
         return this.access.setHotpoter(Hotpot.srcAccount.address, true);
@@ -145,7 +148,28 @@ class Hotpot {
             await srcFlux.mint(srcAccount.address, maxFeeFlux);
             await srcFlux.approve(srcVault.address, maxFeeFlux);
         }
-        return srcRouer.crossTransfer(srcGateway.address, to, amount, maxFeeFlux);
+        const crossTransfer = srcRouer.functions['crossTransfer(address,address,uint256,uint256)']
+        return crossTransfer(srcGateway.address, to, amount, maxFeeFlux);
+    }
+
+    async crossTransferWithData(toPolyId, symbol, to, amount, useFeeFlux, data) {
+        const srcRouer = this.router;
+        const srcToken = this.tokens[symbol];
+        const srcGateway = this.gateways[toPolyId][symbol];
+        const srcVault = this.vaults[symbol];
+        const srcFlux = this.flux;
+        const srcAccount = Hotpot.srcAccount;
+
+        await srcToken.mint(srcAccount.address, amount);
+        await srcToken.approve(srcVault.address, amount);
+        let maxFeeFlux = 0;
+        if (useFeeFlux) {
+            maxFeeFlux = await this.feeFlux(srcGateway, amount);
+            await srcFlux.mint(srcAccount.address, maxFeeFlux);
+            await srcFlux.approve(srcVault.address, maxFeeFlux);
+        }
+        const crossTransfer = srcRouer.functions['crossTransfer(address,address,uint256,uint256,bytes)']
+        return crossTransfer(srcGateway.address, to, amount, maxFeeFlux, data);
     }
 
     async onCrossTransferByHotpoter(symbol, data, fromAddress, fromPolyId, account = Hotpot.srcAccount) {
@@ -251,6 +275,10 @@ class Hotpot {
     static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux) {
         //await destChain.deposit(symbol, amount);
         return srcChain.crossTransfer(destChain.polyId, symbol, to, amount, useFeeFlux);
+    }
+    static async CrossTransferWithData(srcChain, destChain, symbol, to, amount, useFeeFlux, data = Buffer.alloc(0)) {
+        //await destChain.deposit(symbol, amount);
+        return srcChain.crossTransferWithData(destChain.polyId, symbol, to, amount, useFeeFlux, data);
     }
 
 }
