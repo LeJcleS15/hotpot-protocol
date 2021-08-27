@@ -277,9 +277,9 @@ class Hotpot {
         }
     }
 
-    static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux, autoConfirm = false) {
+    static async CrossRebalance(srcChain, destChain, symbol, to, amount, fluxAmount, autoConfirm = false) {
         //await destChain.deposit(symbol, amount);
-        const tx = srcChain.crossTransfer(destChain.polyId, symbol, to, amount, useFeeFlux);
+        const tx = await srcChain.crossRebalance(destChain.polyId, symbol, to, amount, fluxAmount);
         if (!autoConfirm) return tx;
         const receipt = await tx.wait(0);
         const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
@@ -291,11 +291,45 @@ class Hotpot {
         const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
         const srcGateway = srcChain.gateways[destChain.polyId][symbol];
         const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
+        const status = await destChain.gateways[srcChain.polyId][symbol].existedIds(crossEvent.args.crossId);
+        if (status == 0) throw `comfirm wrong! ${status}`;
         return [tx, tx2];
     }
-    static async CrossTransferWithData(srcChain, destChain, symbol, to, amount, useFeeFlux, data = Buffer.alloc(0)) {
+    static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux, autoConfirm = false) {
         //await destChain.deposit(symbol, amount);
-        return srcChain.crossTransferWithData(destChain.polyId, symbol, to, amount, useFeeFlux, data);
+        const tx = await srcChain.crossTransfer(destChain.polyId, symbol, to, amount, useFeeFlux);
+        if (!autoConfirm) return tx;
+        const receipt = await tx.wait(0);
+        const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
+        const CrossTransferSig = iface.getEventTopic('CrossTransfer');
+        const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
+        const crossEvent = iface.parseLog(crossLog);
+
+        const abi = new ethers.utils.AbiCoder();
+        const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
+        const srcGateway = srcChain.gateways[destChain.polyId][symbol];
+        const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
+        const status = await destChain.gateways[srcChain.polyId][symbol].existedIds(crossEvent.args.crossId);
+        if (status == 0) throw `comfirm wrong! ${status}`;
+        return [tx, tx2];
+    }
+    static async CrossTransferWithData(srcChain, destChain, symbol, to, amount, useFeeFlux, data = Buffer.alloc(0), autoConfirm = false) {
+        //await destChain.deposit(symbol, amount);
+        const tx = await srcChain.crossTransferWithData(destChain.polyId, symbol, to, amount, useFeeFlux, data);
+        if (!autoConfirm) return tx;
+        const receipt = await tx.wait(0);
+        const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
+        const CrossTransferSig = iface.getEventTopic('CrossTransferWithData');
+        const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
+        const crossEvent = iface.parseLog(crossLog);
+
+        const abi = new ethers.utils.AbiCoder();
+        const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256', 'address', 'bytes'], ['crossId', 'to', 'amount', 'fee', 'feeFlux', 'from', 'extData'].map(key => crossEvent.args[key]));
+        const srcGateway = srcChain.gateways[destChain.polyId][symbol];
+        const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
+        const status = await destChain.gateways[srcChain.polyId][symbol].existedIds(crossEvent.args.crossId);
+        if (status == 0) throw `comfirm wrong! ${status}`;
+        return [tx, tx2];
     }
 
 }

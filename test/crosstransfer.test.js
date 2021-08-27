@@ -118,7 +118,6 @@ describe("Cross Test", function () {
         }
     });
 
-
     it("1. Vault Deposit test", async function () {
 
         const depositVault = async (chain, toPolyId) => {
@@ -169,17 +168,13 @@ describe("Cross Test", function () {
 
             const amount = ethers.utils.parseUnits(casei.amount, beforeSrc.token.decimals);
 
-            const tx = await Hotpot.CrossTransfer(srcChain, destChain, symbol, to, amount, casei.useFeeFlux);
+            const [tx,] = await Hotpot.CrossTransfer(srcChain, destChain, symbol, to, amount, casei.useFeeFlux, true);
 
             const receipt = await tx.wait(0);
             const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
             const CrossTransferSig = iface.getEventTopic('CrossTransfer');
             const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
             const crossEvent = iface.parseLog(crossLog);
-
-            const abi = new ethers.utils.AbiCoder();
-            const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
-            await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
 
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
             const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
@@ -228,7 +223,7 @@ describe("Cross Test", function () {
 
             const amount = ethers.utils.parseUnits(casei.amount, beforeSrc.token.decimals);
 
-            const tx = await Hotpot.CrossTransferWithData(srcChain, destChain, symbol, to, amount, casei.useFeeFlux, CROSS_DATA);
+            const [tx, txOnTransfer] = await Hotpot.CrossTransferWithData(srcChain, destChain, symbol, to, amount, casei.useFeeFlux, CROSS_DATA, true);
 
             const receipt = await tx.wait(0);
             const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
@@ -236,9 +231,6 @@ describe("Cross Test", function () {
             const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
             const crossEvent = iface.parseLog(crossLog);
 
-            const abi = new ethers.utils.AbiCoder();
-            const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256', 'address', 'bytes'], ['crossId', 'to', 'amount', 'fee', 'feeFlux', 'from', 'extData'].map(key => crossEvent.args[key]));
-            const txOnTransfer = await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
             {
                 const Callee = await ethers.getContractFactory('Callee');
                 const iface = Callee.interface;
@@ -306,19 +298,8 @@ describe("Cross Test", function () {
             const amount = beforeSrc.vault.gateDebt.debt.abs();
             const fluxAmount = beforeSrc.vault.gateDebt.debtFlux.abs();
 
-            let txOnTransfer;
-            {
-                const tx = await srcChain.crossRebalance(destChain.polyId, symbol, to, amount, fluxAmount);
-                const receipt = await tx.wait(0);
-                const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
-                const CrossTransferSig = iface.getEventTopic('CrossTransfer');
-                const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
-                const crossEvent = iface.parseLog(crossLog);
+            const [, txOnTransfer] = await Hotpot.CrossRebalance(srcChain, destChain, symbol, to, amount, fluxAmount, true);
 
-                const abi = new ethers.utils.AbiCoder();
-                const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
-                txOnTransfer = await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
-            }
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
             const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
 
@@ -626,8 +607,7 @@ describe("Cross Test", function () {
                 expect(pendingLength).to.eq(1, "pending check");
                 const pending = afterDest.gateway.pendings[0];
                 expect(pending).to.equal(crossData);
-
-                await Hotpot.CrossTransfer(destChain, srcChain, symbol, to, 1, true);
+                await Hotpot.CrossTransfer(destChain, srcChain, symbol, to, 1, true, true);
 
             }
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
@@ -649,19 +629,84 @@ describe("Cross Test", function () {
 
             expect(srcAmount.add(srcFee)).to.equal(amount);
             expect(afterDest.token.toBalance.sub(beforeDest.token.toBalance)).to.equal(destAmount);
-            expect(afterSrc.vault.gateDebt.debt.sub(beforeSrc.vault.gateDebt.debt)).to.equal(amount);
+            expect(afterSrc.vault.gateDebt.debt.sub(beforeSrc.vault.gateDebt.debt)).to.equal(amount.sub(1));
             expect(beforeDest.vault.gateDebt.debt.sub(afterDest.vault.gateDebt.debt)).to.equal(destAmount.add(destFee).sub(1));
 
             expect(afterSrc.vault.gateDebt.debtFlux.sub(beforeSrc.vault.gateDebt.debtFlux)).to.equal(crossEvent.args.feeFlux);
             expect(beforeDest.vault.gateDebt.debtFlux.sub(afterDest.vault.gateDebt.debtFlux)).to.equal(crossEvent.args.feeFlux);
 
-            console.log(symbol, amount.toString(), beforeSrc.vault.gateDebt.debt.toString(), beforeSrc.gateway.pendings, beforeSrc.gateway.pendingAmount.toString(), beforeDest.vault.gateDebt.debt.toString(), beforeDest.gateway.pendings, beforeDest.gateway.pendingAmount.toString());
             expect(beforeSrc.vault.gateDebt.debt.add(beforeDest.vault.gateDebt.debt)).to.equal(0);
             expect(beforeSrc.vault.gateDebt.debtFlux.add(beforeDest.vault.gateDebt.debtFlux)).to.equal(0);
-            console.log(afterSrc.vault.gateDebt.debt.toString(), afterSrc.gateway.pendingAmount.toString(), afterDest.vault.gateDebt.debt.toString(), afterDest.gateway.pendingAmount.toString())
             expect(afterSrc.vault.gateDebt.debt.add(afterDest.vault.gateDebt.debt)).to.equal(0);
             expect(afterSrc.vault.gateDebt.debtFlux.add(afterDest.vault.gateDebt.debtFlux)).to.equal(0);
         }
     });
 
+    it("11. CrossTransfer pending (deal by crossrebalance) test", async function () {
+        const srcChain = this.Chain1;
+        const destChain = this.Chain2;
+
+        for (let i = 0; i < testcasees.crossTransfer.length; i++) {
+            const casei = testcasees.crossTransfer[i];
+            const symbol = casei.symbol;
+
+            const to = Hotpot.destAccount.address;
+
+            const beforeSrc = await this.Status(srcChain, symbol, destChain.polyId);
+            const beforeDest = await this.Status(destChain, symbol, srcChain.polyId, to);
+
+            const amount = beforeDest.vault.balance.add(1);
+
+            const tx = await Hotpot.CrossTransfer(srcChain, destChain, symbol, to, amount, casei.useFeeFlux);
+
+            const receipt = await tx.wait(0);
+            const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
+            const CrossTransferSig = iface.getEventTopic('CrossTransfer');
+            const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
+            const crossEvent = iface.parseLog(crossLog);
+
+            const abi = new ethers.utils.AbiCoder();
+            const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
+            await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
+            {
+                const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
+                expect(afterDest.gateway.pendingAmount).to.equal(amount);
+                const pendingLength = afterDest.gateway.pendings.length;
+                expect(pendingLength).to.eq(1, "pending check");
+                const pending = afterDest.gateway.pendings[0];
+                expect(pending).to.equal(crossData);
+                await Hotpot.CrossRebalance(destChain, srcChain, symbol, to, 1, 0, true);
+
+            }
+            const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
+            const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
+            expect(afterDest.gateway.pendings.length).to.eq(0, "pending check");
+
+            const srcAmount = await srcChain.toNative(symbol, crossEvent.args.amount);
+            const srcFee = await srcChain.toNative(symbol, crossEvent.args.fee);
+            const destAmount = await destChain.toNative(symbol, crossEvent.args.amount);
+            const destFee = await destChain.toNative(symbol, crossEvent.args.fee);
+
+            if (casei.useFeeFlux) {
+                expect(crossEvent.args.fee).to.equal(0, "fee shoule be 0 if useFeeFlux");
+                const feeFlux = await srcChain.feeFlux(beforeSrc.vault.gateway, amount);
+                expect(crossEvent.args.feeFlux).to.eq(feeFlux, "feeFlux different");
+            }
+            expect(afterSrc.vault.fluxBalance).to.eq(afterSrc.vault.gateDebt.debtFlux, "src chain debt should keep same");
+            expect(afterDest.vault.pendingFlux.total.add(afterDest.vault.reservedFeeFlux)).to.equal(afterDest.vault.gateDebt.debtFlux.abs());
+
+            expect(srcAmount.add(srcFee)).to.equal(amount);
+            expect(afterDest.token.toBalance.sub(beforeDest.token.toBalance)).to.equal(destAmount);
+            expect(afterSrc.vault.gateDebt.debt.sub(beforeSrc.vault.gateDebt.debt)).to.equal(amount.sub(1));
+            expect(beforeDest.vault.gateDebt.debt.sub(afterDest.vault.gateDebt.debt)).to.equal(destAmount.add(destFee).sub(1));
+
+            expect(afterSrc.vault.gateDebt.debtFlux.sub(beforeSrc.vault.gateDebt.debtFlux)).to.equal(crossEvent.args.feeFlux);
+            expect(beforeDest.vault.gateDebt.debtFlux.sub(afterDest.vault.gateDebt.debtFlux)).to.equal(crossEvent.args.feeFlux);
+
+            expect(beforeSrc.vault.gateDebt.debt.add(beforeDest.vault.gateDebt.debt)).to.equal(0);
+            expect(beforeSrc.vault.gateDebt.debtFlux.add(beforeDest.vault.gateDebt.debtFlux)).to.equal(0);
+            expect(afterSrc.vault.gateDebt.debt.add(afterDest.vault.gateDebt.debt)).to.equal(0);
+            expect(afterSrc.vault.gateDebt.debtFlux.add(afterDest.vault.gateDebt.debtFlux)).to.equal(0);
+        }
+    });
 });
