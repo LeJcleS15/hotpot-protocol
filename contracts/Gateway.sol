@@ -132,16 +132,19 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return config.getEthCrossChainManager();
     }
 
+    /// @dev bind remote polyId and gateway contract
     function bindGateway(uint64 polyId, address gateway) external onlyOwner {
         remotePolyId = polyId;
         remoteGateway = gateway;
         bindStatus = CrossStatus.COMPLETED;
     }
 
+    /// @dev set fee, denominator is 10000
     function setFee(uint256 _fee) external onlyOwner {
         fee = _fee;
     }
 
+    /// @dev align token decimal to 18
     function nativeToMeta(uint256 amount) private view returns (uint256) {
         uint8 tokenDecimals = ERC20UpgradeSafe(address(token)).decimals();
         uint8 metaDecimals = decimals;
@@ -149,6 +152,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return amount.mul(10**uint256(metaDecimals - tokenDecimals));
     }
 
+    /// @dev align 18-decimal to token decimal
     function metaToNative(uint256 amount) private view returns (uint256) {
         uint8 tokenDecimals = ERC20UpgradeSafe(address(token)).decimals();
         uint8 metaDecimals = decimals;
@@ -208,6 +212,13 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         emit CrossTransferWithData(crossId, from, to, metaAmount, metaFee, _feeFlux, tokenPrice, fluxPrice, data);
     }
 
+    /**
+     * @notice crossRebalanceFrom rebalance the liquidity
+     * @param from payment account
+     * @param to account in target chain that receiving the token
+     * @param amount token amount
+     * @param fluxAmount flux amount
+     */
     function crossRebalanceFrom(
         address from,
         address to,
@@ -225,6 +236,14 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
     }
 
+    /**
+     * @notice crossTransferFrom cross transfer token and call target contract with data
+     * @param from payment account
+     * @param to account in target chain that receiving the token
+     * @param amount token amount
+     * @param maxFluxFee maximum available Flux fee
+     * @param data custom data passed to target contract
+     */
     function crossTransferFrom(
         address from,
         address to,
@@ -246,6 +265,13 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         dealPending(1);
     }
 
+    /**
+     * @notice crossTransferFrom cross transfer token
+     * @param from payment account
+     * @param to account in target chain that receiving the token
+     * @param amount token amount
+     * @param maxFluxFee maximum available Flux fee
+     */
     function crossTransferFrom(
         address from,
         address to,
@@ -295,13 +321,13 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return success;
     }
 
-    // virtual for unit test
+    /// @dev virtual for unit test
     function _onCrossTransferExecute(bytes memory data) internal virtual returns (bool) {
         (, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
         return _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
     }
 
-    // virtual for unit test
+    /// @dev virtual for unit test
     function _onCrossTransferWithDataExecute(bytes memory data) internal virtual returns (bool) {
         (, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux, address from, bytes memory extData) = abi.decode(
             data,
@@ -310,7 +336,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return _onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData);
     }
 
-    // DANGER: Do not call dealPending in onCrossTransferExecute!
+    /// @dev Do not call dealPending in onCrossTransferExecute!
     function onCrossTransferExecute(bytes memory data) private returns (CrossStatus) {
         uint256 crossId = abi.decode(data, (uint256));
         CrossStatus status = existedIds[crossId];
@@ -326,6 +352,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return newStatus;
     }
 
+    /// @notice onCrossTransfer is handler of crossTransfer event, called by poly ECCM contract
     function onCrossTransfer(
         bytes calldata data,
         bytes calldata fromAddress,
@@ -338,6 +365,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return true;
     }
 
+    /// @notice multiple confirmation for cross data
     function onCrossTransferByHotpoter(
         bytes calldata data,
         address fromAddress,
@@ -350,11 +378,13 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return true;
     }
 
+    /// @notice length of pending order
     function pendingLength() external view returns (uint256) {
         return pending.length;
     }
 
-    // DANGER: Do not call this in onCrossTransferExecute!
+    /// @notice deal pending order
+    /// @dev Do not call this in onCrossTransferExecute!
     function dealPending(uint256 count) public {
         if (pending.length < count) count = pending.length;
         while (count-- > 0) {
