@@ -271,7 +271,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaAmount,
         uint256 metaFee,
         int256 _feeFlux
-    ) private returns (bool) {
+    ) internal returns (bool) {
         uint256 tokenAmount = metaToNative(metaAmount);
         uint256 tokenFee = metaToNative(metaFee);
         uint256 before = token.balanceOf(to);
@@ -286,7 +286,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaFee,
         int256 _feeFlux,
         bytes memory data
-    ) private returns (bool) {
+    ) internal returns (bool) {
         bool success = _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
         if (success) {
             uint256 tokenAmount = metaToNative(metaAmount);
@@ -295,35 +295,19 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return success;
     }
 
-    function _onCrossTransferExecute(bytes memory data) private returns (CrossStatus) {
-        (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
-        CrossStatus status = existedIds[crossId]; // status != COMPLETE
-        if (_onCrossTransfer(to, metaAmount, metaFee, _feeFlux)) {
-            status = existedIds[crossId] = CrossStatus.COMPLETED;
-            emit OnCrossTransfer(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, metaFee, _feeFlux);
-        } else if (status == CrossStatus.NONE) {
-            status = existedIds[crossId] = CrossStatus.PENDING;
-            emit OnCrossTransfer(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux);
-            pending.push(data);
-        }
-        return status;
+    // virtual for unit test
+    function _onCrossTransferExecute(bytes memory data) internal virtual returns (bool) {
+        (, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
+        return _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
     }
 
-    function _onCrossTransferWithDataExecute(bytes memory data) private returns (CrossStatus) {
-        (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux, address from, bytes memory extData) = abi.decode(
+    // virtual for unit test
+    function _onCrossTransferWithDataExecute(bytes memory data) internal virtual returns (bool) {
+        (, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux, address from, bytes memory extData) = abi.decode(
             data,
             (uint256, address, uint256, uint256, int256, address, bytes)
         );
-        CrossStatus status = existedIds[crossId]; // status != COMPLETE
-        if (_onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData)) {
-            status = existedIds[crossId] = CrossStatus.COMPLETED;
-            emit OnCrossTransferWithData(crossId, uint256(CrossStatus.COMPLETED), to, metaAmount, metaFee, _feeFlux, from, extData);
-        } else if (status == CrossStatus.NONE) {
-            status = existedIds[crossId] = CrossStatus.PENDING;
-            emit OnCrossTransferWithData(crossId, uint256(CrossStatus.PENDING), to, metaAmount, metaFee, _feeFlux, from, extData);
-            pending.push(data);
-        }
-        return status;
+        return _onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData);
     }
 
     // DANGER: Do not call dealPending in onCrossTransferExecute!
@@ -331,8 +315,15 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 crossId = abi.decode(data, (uint256));
         CrossStatus status = existedIds[crossId];
         if (status == CrossStatus.COMPLETED) return status;
-
-        return CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
+        bool succeed = CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
+        CrossStatus newStatus = succeed ? CrossStatus.COMPLETED : CrossStatus.PENDING;
+        if (status != newStatus) {
+            // NONE->COMPLETED or NONE->PENDING
+            existedIds[crossId] = newStatus;
+            emit OnCrossTransferStatus(crossId, uint256(newStatus));
+            if (newStatus == CrossStatus.PENDING) pending.push(data); // NONE->PENDING
+        }
+        return newStatus;
     }
 
     function onCrossTransfer(

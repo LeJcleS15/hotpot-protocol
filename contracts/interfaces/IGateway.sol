@@ -17,8 +17,7 @@ interface IGateway {
         uint256 fluxPrice,
         bytes extData
     );
-    event OnCrossTransfer(uint256 indexed crossId, uint256 indexed status, address indexed to, uint256 amount, uint256 fee, int256 feeFlux);
-    event OnCrossTransferWithData(uint256 indexed crossId, uint256 indexed status, address indexed to, uint256 amount, uint256 fee, int256 feeFlux, address from, bytes data);
+    event OnCrossTransferStatus(uint256 indexed crossId, uint256 indexed status);
     event CrossConfirm(bytes32 indexed crossSig, uint256 indexed relayerRole, uint256 confirmStatus);
 
     function remotePolyId() external view returns (uint64);

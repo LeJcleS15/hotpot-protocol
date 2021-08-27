@@ -104,7 +104,7 @@ class Hotpot {
             vault.address
         ];
         if (!this.gateways[remotePolyId]) this.gateways[remotePolyId] = {}
-        const gateway = await deployProxy('Gateway', args);
+        const gateway = await deployProxy('GatewayMock', args);
         await this.config.bindVault(vault.address, gateway.address);
         this.gateways[remotePolyId][symbol] = gateway;
         return gateway;

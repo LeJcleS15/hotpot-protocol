@@ -160,7 +160,7 @@ describe("Cross Test", function () {
             const tx = await Hotpot.CrossTransfer(srcChain, destChain, symbol, to, amount, casei.useFeeFlux);
 
             const receipt = await tx.wait(0);
-            const iface = await ethers.getContractFactory('Gateway').then(gateway => gateway.interface);
+            const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
             const CrossTransferSig = iface.getEventTopic('CrossTransfer');
             const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
             const crossEvent = iface.parseLog(crossLog);
@@ -219,7 +219,7 @@ describe("Cross Test", function () {
             const tx = await Hotpot.CrossTransferWithData(srcChain, destChain, symbol, to, amount, casei.useFeeFlux, CROSS_DATA);
 
             const receipt = await tx.wait(0);
-            const iface = await ethers.getContractFactory('Gateway').then(gateway => gateway.interface);
+            const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
             const CrossTransferSig = iface.getEventTopic('CrossTransferWithData');
             const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
             const crossEvent = iface.parseLog(crossLog);
@@ -298,7 +298,7 @@ describe("Cross Test", function () {
             {
                 const tx = await srcChain.crossRebalance(destChain.polyId, symbol, to, amount, fluxAmount);
                 const receipt = await tx.wait(0);
-                const iface = await ethers.getContractFactory('Gateway').then(gateway => gateway.interface);
+                const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
                 const CrossTransferSig = iface.getEventTopic('CrossTransfer');
                 const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
                 const crossEvent = iface.parseLog(crossLog);
@@ -315,7 +315,7 @@ describe("Cross Test", function () {
             expect(beforeDest.vault.totalShare).to.eq(afterDest.vault.totalShare);
             expect(beforeDest.vault.totalToken).to.eq(afterDest.vault.totalToken);
 
-            const gateway = await ethers.getContractFactory('Gateway');
+            const gateway = await ethers.getContractFactory('GatewayMock');
             var iface = gateway.interface;
             const OnCrossTransferSig = iface.getEventTopic('OnCrossTransfer');
             const receipt = await txOnTransfer.wait(0);
