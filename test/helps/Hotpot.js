@@ -190,6 +190,11 @@ class Hotpot {
         return vault.connect(account).withdraw(share);
     }
 
+    async dealPending(symbol, remotePolyId, count) {
+        const gateway = this.gateways[remotePolyId][symbol];
+        return gateway.dealPending(count);
+    }
+
     async harvestFlux(symbol, account) {
         const vault = this.vaults[symbol];
         return vault.connect(account).harvest();
@@ -226,7 +231,7 @@ class Hotpot {
 
     async feeFlux(gateway, amount) {
         const fee = await gateway.fee();
-        const feeToken = amount.mul(fee).div(10000);
+        const feeToken = fee.mul(amount).div(10000);
         const token = await gateway.token();
         return this.config.feeFlux(token, feeToken);
     }
@@ -272,9 +277,21 @@ class Hotpot {
         }
     }
 
-    static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux) {
+    static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux, autoConfirm = false) {
         //await destChain.deposit(symbol, amount);
-        return srcChain.crossTransfer(destChain.polyId, symbol, to, amount, useFeeFlux);
+        const tx = srcChain.crossTransfer(destChain.polyId, symbol, to, amount, useFeeFlux);
+        if (!autoConfirm) return tx;
+        const receipt = await tx.wait(0);
+        const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
+        const CrossTransferSig = iface.getEventTopic('CrossTransfer');
+        const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
+        const crossEvent = iface.parseLog(crossLog);
+
+        const abi = new ethers.utils.AbiCoder();
+        const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
+        const srcGateway = srcChain.gateways[destChain.polyId][symbol];
+        const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
+        return [tx, tx2];
     }
     static async CrossTransferWithData(srcChain, destChain, symbol, to, amount, useFeeFlux, data = Buffer.alloc(0)) {
         //await destChain.deposit(symbol, amount);
