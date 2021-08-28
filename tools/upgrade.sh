@@ -26,7 +26,8 @@ net() {
     fi
 }
 
-export NETENV=MAINNET
+export NETENV=TESTNET
+#export NETENV=MAINNET
 npx hardhat compile
 
 UPGRADE=upgradeConfig

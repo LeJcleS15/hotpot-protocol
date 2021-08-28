@@ -92,10 +92,17 @@ contract Config is OwnableUpgradeSafe, IConfig {
 contract ConfigFix is Config {
     function fix() external {
         require(getChainID() == OEC_CHAIN_ID, "only OEC");
+        require(address(oracle) == 0x21a276b169F51A0725dbc708C09eA7e1C4D94488, "oracle check");
         oracle = IPriceOracle(0xd249C5D313Bfe6c57Da0AA6cc9Db5F87cBC137a3);
     }
 
     function setRouter(address _router) external onlyOwner {
+        address oldRouter;
+        uint256 chainId = getChainID();
+        if (chainId == BSC_CHAIN_ID) oldRouter = 0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901;
+        else if (chainId == HECO_CHAIN_ID) oldRouter = 0x1E6C2D90Eb956bD8bd0F804B2D5d0dc035E602Fd;
+        else if (chainId == OEC_CHAIN_ID) oldRouter = 0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901;
+        require(router == oldRouter && oldRouter != address(0), "old router cehck");
         router = _router;
     }
 }

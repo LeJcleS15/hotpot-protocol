@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require('hardhat');
 const record = require('../helps/record');
 const ContractKey = ["Config"];
-const Contract = "Config";
+const Contract = "ConfigFix";
 
 function ContractAt(Contract, address) {
   return ethers.getSigners().then(
@@ -50,13 +50,13 @@ module.exports = async function (hre) {
   for (let i = 0; i < vaults.length; i++) {
     const vault = vaults[i];
     const oldC = await ContractAt(Contract, vault)
-    const newC = await upgradeProxy(vault, Contract);
-    if (chainId == 66) {
+    const newC = await upgradeProxy(vault, Contract, { unsafeAllow: true });
+    if (hre.chainId == 66) {
       console.log("oec");
       await newC.fix();
     }
     await newC.setRouter(Deployed.RouterV2);
-    console.log("CHAINID:", await newC.getChainID())
+    console.log("CHAINID:", Number(await newC.getChainID()))
     //console.log(i, await oldC.config())
   }
   //const newC = await upgradeProxy(oldAddress, Contract);
