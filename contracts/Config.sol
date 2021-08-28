@@ -86,4 +86,8 @@ contract Config is OwnableUpgradeSafe, IConfig {
     function setCaller(IExtCaller _caller) external onlyOwner {
         caller = _caller;
     }
+
+    function setRouter(address _router) external onlyOwner {
+        router = _router;
+    }
 }
