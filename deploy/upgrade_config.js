@@ -27,7 +27,7 @@ module.exports = async function (hre) {
   hre.chainId = await getChainId();
   const accounts = await ethers.getSigners();
   const deployAcc = accounts[0].address;
-  console.log(deployAcc);
+  console.log(deployAcc, hre.chainId);
   /*
   const { deployments, getNamedAccounts } = hre;
   const { deploy } = deployments;
@@ -51,7 +51,12 @@ module.exports = async function (hre) {
     const vault = vaults[i];
     const oldC = await ContractAt(Contract, vault)
     const newC = await upgradeProxy(vault, Contract);
-    //await newC.fix(Deployed.Config);
+    if (chainId == 66) {
+      console.log("oec");
+      await newC.fix();
+    }
+    await newC.setRouter(Deployed.RouterV2);
+    console.log("CHAINID:", await newC.getChainID())
     //console.log(i, await oldC.config())
   }
   //const newC = await upgradeProxy(oldAddress, Contract);

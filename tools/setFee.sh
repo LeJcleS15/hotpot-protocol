@@ -1,9 +1,8 @@
 set -e
 
-setGas() {
-    yarn tags Gas
+setFee() {
+    yarn tags setFee
 }
-
 
 net() {
     if [ "$NETENV" == "MAINNET" ];then
@@ -13,15 +12,11 @@ net() {
     fi
 }
 
-#export NETENV=TESTNET
 export NETENV=MAINNET
 npx hardhat compile
 
-ACTION=setGas
-
-NETWORK=`net ok` $ACTION
-NETWORK=`net heco` $ACTION
-NETWORK=`net bsc` $ACTION
-
+NETWORK=`net ok` setFee
+NETWORK=`net heco` setFee
+NETWORK=`net bsc` setFee
 
 
