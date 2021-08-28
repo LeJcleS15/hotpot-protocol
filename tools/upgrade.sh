@@ -18,16 +18,21 @@ upgradeConfig() {
     yarn tags upgradeConfig
 }
 
+net() {
+    if [ "$NETENV" == "MAINNET" ];then
+        echo $1_main
+    else
+        echo $1_test
+    fi
+}
 
-export NETENV=TESTNET
+#export NETENV=TESTNET
+export NETENV=MAINNET
 npx hardhat compile
 
-UPGRADE=upgradeGateways
+UPGRADE=upgradeConfig
 
-NETWORK=ok_test $UPGRADE
-NETWORK=heco_test $UPGRADE
-NETWORK=bsc_test $UPGRADE
+#NETWORK=`net ok` $UPGRADE
+NETWORK=`net heco` $UPGRADE
+NETWORK=`net bsc` $UPGRADE
 
-#NETWORK=ok_test upgradeVaults
-#NETWORK=heco_test upgradeVaults
-#NETWORK=bsc_test upgradeVaults

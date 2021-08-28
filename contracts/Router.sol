@@ -87,7 +87,7 @@ contract Router is Ownable, ReentrancyGuard, Pausable {
         address to,
         uint256 amount,
         uint256 fluxAmount
-    ) external payable nonReentrant whenNotPaused {
+    ) external nonReentrant whenNotPaused {
         //uint256 fee = getFeeNative(gate.remotePolyId());
         //require(msg.value >= fee, "fee too low");
         gate.crossRebalanceFrom(msg.sender, to, amount, fluxAmount);

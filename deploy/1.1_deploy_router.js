@@ -45,7 +45,7 @@ const func = async function (hre) {
     const router = await deployments.get('Router');
     console.log('Router', router.address)
 
-    record(hre.Record, ['Router'], router.address, hre.chainId);
+    record(hre.Record, ['RouterV2'], router.address, hre.chainId);
 };
 
 module.exports = func;

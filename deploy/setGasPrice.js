@@ -20,9 +20,9 @@ function ContractAt(Contract, address) {
 }
 
 const GasPirces = {
-    "79": [400000, 5e9],
-    "7": [400000, 2.5e9],
-    "200": [400000, 0.1e9],
+    "BSC": [400000, 5e9],
+    "HECO": [400000, 2.5e9],
+    "OEC": [400000, 0.1e9],
 }
 
 const func = async function (hre) {
@@ -38,10 +38,12 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
 
-    const router = await ContractAt('Router', Deployed.Router);
+    const chains = ChainsData(hre.Chains);
+
+    const router = await ContractAt('Router', Deployed.RouterV2);
 
     const remotePolyIds = Object.keys(Deployed.Gateways);
-    const gases = remotePolyIds.map(polyId => GasPirces[polyId]);
+    const gases = remotePolyIds.map(polyId => GasPirces[chains._polyToName(polyId)]);
     await router.setGas(remotePolyIds, gases.map(g => g[0]), gases.map(g => g[1]));
 };
 

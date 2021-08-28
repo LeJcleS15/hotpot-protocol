@@ -42,6 +42,14 @@ contract Config is OwnableUpgradeSafe, IConfig {
         router = _router;
     }
 
+    function getChainID() public pure returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
     function isRouter(address _router) external view override returns (bool) {
         return _router == router;
     }

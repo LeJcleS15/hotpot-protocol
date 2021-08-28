@@ -5,7 +5,19 @@ Balancer() {
     echo "--------------------"$NETENV $NETWORK
     yarn tags Balancer
 }
-export NETENV=TESTNET
-NETWORK=bsc_test Balancer
-NETWORK=heco_test Balancer
-NETWORK=ok_test Balancer
+
+
+net() {
+    if [ "$NETENV" == "MAINNET" ];then
+        echo $1_main
+    else
+        echo $1_test
+    fi
+}
+
+export NETENV=MAINNET
+npx hardhat compile
+
+NETWORK=`net ok` Balancer
+NETWORK=`net heco` Balancer
+NETWORK=`net bsc` Balancer
