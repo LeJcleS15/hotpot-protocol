@@ -32,7 +32,7 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
 
-    const balancer = '0x6F431c9039216DCc5E65c00BCC7FD1C8e1048440';
+    const balancer = deployAcc; //'0x6F431c9039216DCc5E65c00BCC7FD1C8e1048440';
     const Access = await ContractAt('Access', Deployed.Access);
     //await Access.setBalancer(balancer, true);
     await Access.setHotpoter(balancer, true);

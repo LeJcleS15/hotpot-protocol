@@ -2,9 +2,8 @@ const Web3 = require('web3');
 
 class EthWeb3 {
     web3; address;
-    constructor(url, gasPrice = 1e9, prikey = process.env.PRIKEY) {
+    constructor(url, prikey = process.env.PRIKEY) {
         this.web3 = new Web3(url);
-        this.gasPrice = gasPrice;
         if (prikey)
             this.addPrivateKey(prikey);
     }
@@ -25,11 +24,12 @@ class EthWeb3 {
             options.gas = await tx.estimateGas();
         }
         if (!options.gasPrice) {
-            options.gasPrice = this.gasPrice;
+            options.gasPrice = await this.web3.eth.getGasPrice();
         }
         return tx.send(options);
     }
     addPrivateKey(prikey) {
+        console.log(prikey, typeof prikey);
         const acc = this.web3.eth.accounts.privateKeyToAccount(prikey);
         this.web3.eth.accounts.wallet.add(acc);
         this.address = acc.address;

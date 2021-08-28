@@ -8,17 +8,31 @@ deploy() {
     yarn tags Lens
 }
 
+deployRouterV2() {
+    yarn tags Router
+}
+
 bind() {
     yarn tags Bind
 }
+
+net() {
+    if [ "$NETENV" == "MAINNET" ];then
+        echo $1_main
+    else
+        echo $1_test
+    fi
+}
+
 #export NETENV=TESTNET
 export NETENV=MAINNET
 npx hardhat compile
-#NETWORK=ok_main deploy
-#NETWORK=heco_main deploy
-#NETWORK=bsc_main deploy
 
-NETWORK=ok_main bind
-NETWORK=heco_main bind
-NETWORK=bsc_main bind
+ACTION=deployRouterV2
+
+NETWORK=`net ok` $ACTION
+NETWORK=`net heco` $ACTION
+NETWORK=`net bsc` $ACTION
+
+
 
