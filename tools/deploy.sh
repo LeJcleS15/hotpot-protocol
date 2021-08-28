@@ -24,8 +24,8 @@ net() {
     fi
 }
 
-export NETENV=TESTNET
-#export NETENV=MAINNET
+#export NETENV=TESTNET
+export NETENV=MAINNET
 npx hardhat compile
 
 ACTION=deployRouterV2

@@ -50,8 +50,8 @@ module.exports = async function (hre) {
   for (let i = 0; i < vaults.length; i++) {
     const vault = vaults[i];
     const oldC = await ContractAt(Contract, vault)
-    const newC = await upgradeProxy(vault, Contract, { unsafeAllow: true });
-    if (hre.chainId == 66) {
+    const newC = await upgradeProxy(vault, Contract);
+    if (chainId == 66) {
       console.log("oec");
       await newC.fix();
     }
