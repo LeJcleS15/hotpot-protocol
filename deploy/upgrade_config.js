@@ -28,45 +28,24 @@ module.exports = async function (hre) {
   const accounts = await ethers.getSigners();
   const deployAcc = accounts[0].address;
   console.log(deployAcc, hre.chainId);
-  /*
-  const { deployments, getNamedAccounts } = hre;
-  const { deploy } = deployments;
-  const { deployer } = await getNamedAccounts();
-  await deploy('FluxTokenMock', {
-    from: deployer,
-    log: true,
-    deterministicDeployment: false,
-  });
-
-  const fluxMock = await deployments.get('FluxTokenMock');
-
-  console.log(fluxMock.address)
-  */
 
   const Deployed = record(hre.Record);
   const oldAddress = ContractKey.reduce((r, key) => r[key], Deployed);
-  const vaults = [oldAddress];
-  console.log(vaults)
-  for (let i = 0; i < vaults.length; i++) {
-    const vault = vaults[i];
-    const oldC = await ContractAt(Contract, vault)
-    const newC = await upgradeProxy(vault, Contract);
-    if (chainId == 66) {
+  {
+    const Config = oldAddress;
+    const oldC = await ContractAt(Contract, Config)
+    const newC = await upgradeProxy(Config, Contract);
+
+
+    if (hre.chainId == 66) {
       console.log("oec");
       await newC.fix();
     }
     await newC.setRouter(Deployed.RouterV2);
-    console.log("CHAINID:", Number(await newC.getChainID()))
+
+    console.log("CHAINID:", Number(await oldC.getChainID()))
+    console.log(await oldC.isRouter(Deployed.Router), await oldC.isRouter(Deployed.RouterV2), await oldC.oracle())
     //console.log(i, await oldC.config())
   }
-  //const newC = await upgradeProxy(oldAddress, Contract);
-  //const newC = await ContractAt(Contract, oldAddress)
-  //const flux = await newC.FLUX();
-  //console.log("flux:", flux);
-  //await newC.withdrawFluxAdmin();
-  //await newC.setSupplierPoint(40000);
-  //await newC.setOracle("0xa3D7D6f54D8f6A4931424bD687DbFAB42Bf48Faf");
-  //const newC = await ContractAt(Contract, oldAddress)
-  //await newC.fix();
 }
 module.exports.tags = ["upgradeConfig"];
