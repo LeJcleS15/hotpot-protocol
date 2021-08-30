@@ -45,8 +45,8 @@ contract PolyCall is IEthCrossChainManager, IEthCrossChainManagerProxy {
         address fromContract,
         uint64, /*_toChainId*/
         address _toContract,
-        bytes calldata _method,
-        bytes calldata _txData
+        bytes memory _method,
+        bytes memory _txData
     ) public {
         require(!txExisted[txHash], "tx existed");
         txExisted[txHash] = true;

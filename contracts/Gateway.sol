@@ -357,7 +357,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         bytes calldata data,
         bytes calldata fromAddress,
         uint64 fromPolyId
-    ) public onlyManagerContract returns (bool) {
+    ) external onlyManagerContract returns (bool) {
         address from = bytesToAddress(fromAddress);
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
