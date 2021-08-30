@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 import "./IHotpotCallee.sol";
 
 interface IExtCaller {
-    event CallExt(address gateway, address to, address from, uint64 fromPolyId, address token, uint256 amount, bytes callData, bool success, bytes retData);
+    event CallExt(address gateway, address to, address from, uint64 fromChainId, address token, uint256 amount, bytes callData, bool success, bytes retData);
 
     function callExt(
         IHotpotCallee toContract,
