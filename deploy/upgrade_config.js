@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require('hardhat');
 const record = require('../helps/record');
 const ContractKey = ["Config"];
-const Contract = "ConfigFix";
+const Contract = "Config";
 
 function ContractAt(Contract, address) {
   return ethers.getSigners().then(
@@ -34,18 +34,14 @@ module.exports = async function (hre) {
   {
     const Config = oldAddress;
     const oldC = await ContractAt(Contract, Config)
-    const newC = await upgradeProxy(Config, Contract);
+    //const newC = await upgradeProxy(Config, Contract);
 
-
-    if (hre.chainId == 66) {
-      console.log("oec");
-      await newC.fix();
-    }
-    await newC.setRouter(Deployed.RouterV2);
+    //await newC.setRouter(Deployed.RouterV2);
+    await oldC.setCaller(Deployed.ExtCaller);
 
     console.log("CHAINID:", Number(await oldC.getChainID()))
     console.log(await oldC.isRouter(Deployed.Router), await oldC.isRouter(Deployed.RouterV2), await oldC.oracle())
-    //console.log(i, await oldC.config())
+    console.log(Deployed.ExtCaller, await oldC.caller())
   }
 }
 module.exports.tags = ["upgradeConfig"];

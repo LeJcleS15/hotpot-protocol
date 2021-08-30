@@ -12,6 +12,10 @@ deployRouterV2() {
     yarn tags Router
 }
 
+deployExtCaller() {
+    yarn tags ExtCaller
+}
+
 bind() {
     yarn tags Bind
 }
@@ -24,11 +28,11 @@ net() {
     fi
 }
 
-#export NETENV=TESTNET
-export NETENV=MAINNET
+export NETENV=TESTNET
+#export NETENV=MAINNET
 npx hardhat compile
 
-ACTION=deployRouterV2
+ACTION=deployExtCaller
 
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION

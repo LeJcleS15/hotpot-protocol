@@ -59,9 +59,15 @@ module.exports = async function (hre) {
     for (let j = 0; j < symbols.length; j++) {
       const symbol = symbols[j];
       const gateway = gateways[symbol];
+      if (symbol == 'DAI') continue;
       console.log('token:', symbol, gateway, await getProxyImplementation(gateway));
-      //const oldC = await ContractAt(Contract, gateway)
-      //const newC = await upgradeProxy(gateway, Contract, { unsafeAllowRenames: false });
+      const oldC = await ContractAt(Contract, gateway)
+      const pendingLength = await oldC.pendingLength();
+      if (pendingLength > 0) {
+        console.log("skip pending:", pendingLength.toString());
+        continue;
+      }
+      const newC = await upgradeProxy(gateway, Contract, { unsafeAllow: true });
     }
   }
 
