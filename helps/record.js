@@ -11,7 +11,7 @@ module.exports = (file, path, value, polyId) => {
         const parent = path.slice(0, -1).reduce((node, key) => node[key] = node[key] || {}, chainRecord);
         parent[path.slice(-1)[0]] = value;
         record[chainId] = chainRecord;
-        fs.writeFileSync(recordFile, JSON.stringify(record));
+        fs.writeFileSync(recordFile, JSON.stringify(record, undefined, '    '));
     }
     chainRecord._path = _path => _path.reduce((node, key) => node && node[key], chainRecord);
     return chainRecord;
