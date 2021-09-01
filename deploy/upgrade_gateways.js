@@ -3,6 +3,7 @@ const ChainsData = require('../helps/chains');
 const record = require('../helps/record');
 const ContractKey = ["Gateways"];
 const Contract = "Gateway";
+const DeployedBytecode = require(`../artifacts/contracts/${Contract}.sol/${Contract}.json`).deployedBytecode;
 
 function ContractAt(Contract, address) {
   return ethers.getSigners().then(
@@ -17,9 +18,13 @@ function ContractAt(Contract, address) {
 async function upgradeProxy(oldAddress, Contract) {
   const instance = await ContractAt(Contract, oldAddress)
   const newC = await ethers.getContractFactory(Contract);
-  const upgraded = await upgrades.upgradeProxy(instance.address, newC);
-  console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
-  return upgraded;
+  if (await implCheck(oldAddress, DeployedBytecode)) {
+    console.log(`>> SameImpl ${Contract} at ${instance.address}`);
+  } else {
+    const upgraded = await upgrades.upgradeProxy(instance.address, newC);
+    console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
+  }
+  return instance;
 }
 
 /*
@@ -35,6 +40,15 @@ export interface ValidationOptions {
 async function getProxyImplementation(address) {
   const proxyAdmin = await upgrades.admin.getInstance();
   return proxyAdmin.callStatic.getProxyImplementation(address);
+}
+
+const CodeCache = {}
+async function implCheck(address, newImplCode) {
+  const impl = await getProxyImplementation(address);
+  if (!CodeCache[impl]) {
+    CodeCache[impl] = await ethers.provider.getCode(impl);
+  }
+  return newImplCode == CodeCache[impl];
 }
 
 module.exports = async function (hre) {
@@ -60,14 +74,14 @@ module.exports = async function (hre) {
       const symbol = symbols[j];
       const gateway = gateways[symbol];
       if (symbol == 'DAI') continue;
-      console.log('token:', symbol, gateway, await getProxyImplementation(gateway));
+      console.log('token:', symbol, gateway, await implCheck(gateway));
       const oldC = await ContractAt(Contract, gateway)
       const pendingLength = await oldC.pendingLength();
       if (pendingLength > 0) {
         console.log("skip pending:", pendingLength.toString());
         continue;
       }
-      const newC = await upgradeProxy(gateway, Contract, { unsafeAllow: true });
+      const newC = await upgradeProxy(gateway, Contract, { unsafeAllowRenames: false });
     }
   }
 
