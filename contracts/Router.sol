@@ -56,7 +56,8 @@ contract Router is Ownable, ReentrancyGuard, Pausable {
         uint256 remotePrice = oracle.getPriceMan(address(uint160(polyId)));
         uint256 nativePrice = oracle.getPriceMan(wnative);
         Gas storage _gas = gas[polyId];
-        return (((_gas.gasLimit * _gas.gasPrice * remotePrice) / nativePrice) * 120) / 100;
+        return _gas.gasLimit.mul(_gas.gasPrice).mul(remotePrice).mul(120).div(100).div(nativePrice);
+        //return (((_gas.gasLimit * _gas.gasPrice * remotePrice) / nativePrice) * 120) / 100;
     }
 
     function crossTransfer(

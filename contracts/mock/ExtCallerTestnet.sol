@@ -43,8 +43,25 @@ contract ExtCallerTestnet is IExtCaller {
         address token,
         uint256 amount,
         bytes calldata data
-    ) external override onlyGateway {
+    ) external virtual override onlyGateway {
         uint64 fromChainId = uint64(fromPolyId.toChainId());
+        (bool success, bytes memory retData) = address(toContract).call(abi.encodeWithSelector(IHotpotCallee.hotpotCallback.selector, fromChainId, from, token, amount, data));
+        emit CallExt(msg.sender, address(toContract), from, fromChainId, token, amount, data, success, retData);
+    }
+}
+
+contract ExtCallerLocal is ExtCallerTestnet {
+    constructor(IConfig _config) public ExtCallerTestnet(_config) {}
+
+    function callExt(
+        IHotpotCallee toContract,
+        uint64 fromPolyId,
+        address from,
+        address token,
+        uint256 amount,
+        bytes calldata data
+    ) external override onlyGateway {
+        uint64 fromChainId = fromPolyId;
         (bool success, bytes memory retData) = address(toContract).call(abi.encodeWithSelector(IHotpotCallee.hotpotCallback.selector, fromChainId, from, token, amount, data));
         emit CallExt(msg.sender, address(toContract), from, fromChainId, token, amount, data, success, retData);
     }

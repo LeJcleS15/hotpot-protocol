@@ -186,7 +186,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     ) private {
         uint256 crossId = (uint256(CrossType.TRANSFER) << CROSS_TYPE_OFFSET) | nextCrossId++;
         uint256 metaFee = nativeToMeta(_fee);
-        uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
+        uint256 metaAmount = nativeToMeta(amount);
         bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux);
         CrossBase.crossTo(remotePolyId, remoteGateway, CROSS_METHOD, txData);
         (uint256 tokenPrice, uint256 fluxPrice) = config.feePrice(address(token));
@@ -203,7 +203,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     ) private {
         uint256 crossId = (uint256(CrossType.TRANSFER_WITH_DATA) << CROSS_TYPE_OFFSET) | nextCrossId++;
         uint256 metaFee = nativeToMeta(_fee);
-        uint256 metaAmount = nativeToMeta(amount).sub(metaFee);
+        uint256 metaAmount = nativeToMeta(amount);
         bytes memory txData = abi.encode(crossId, to, metaAmount, metaFee, _feeFlux, from, data);
 
         CrossBase.crossTo(remotePolyId, remoteGateway, CROSS_METHOD, txData);
@@ -225,7 +225,6 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 amount,
         uint256 fluxAmount
     ) external override onlyRouter {
-        require(fluxAmount >= 0, "invalid flux amount");
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(config.isBalancer(from), "onlyBalancer");
         vault.depositFund(from, uint256(amount), fluxAmount);
@@ -234,6 +233,32 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(debt <= 0, "invalid amount");
         require(debtFlux <= 0, "invalid amount");
         _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
+    }
+
+    function _crossTransferFrom(
+        address from,
+        address to,
+        uint256 amount,
+        uint256 maxFluxFee,
+        bool withData,
+        bytes memory data
+    ) private {
+        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
+        uint256 _fee;
+        uint256 _feeFlux;
+        if (amount > 0) {
+            _fee = amount.mul(fee).div(FEE_DENOM);
+            if (maxFluxFee > 0) {
+                _feeFlux = config.feeFlux(address(token), _fee);
+                _fee = 0;
+                require(_feeFlux <= maxFluxFee, "exceed flux fee limit!");
+            }
+            vault.depositFund(from, amount, _feeFlux); // amount includes fee
+            require(_feeFlux < uint256(type(int256).max), "invalid fee");
+        }
+        if (withData) _crossTransferWithData(from, to, amount.sub(_fee), _fee, int256(_feeFlux), data);
+        else _crossTransfer(from, to, amount.sub(_fee), _fee, int256(_feeFlux));
+        dealPending(1);
     }
 
     /**
@@ -251,18 +276,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 maxFluxFee,
         bytes calldata data
     ) external override onlyRouter {
-        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        uint256 _fee = amount.mul(fee).div(FEE_DENOM);
-        uint256 _feeFlux;
-        if (maxFluxFee > 0) {
-            _feeFlux = config.feeFlux(address(token), _fee);
-            _fee = 0;
-            require(_feeFlux <= maxFluxFee, "exceed flux fee limit!");
-        }
-        vault.depositFund(from, amount, _feeFlux);
-        require(_feeFlux < uint256(type(int256).max), "invalid fee");
-        _crossTransferWithData(from, to, amount, _fee, int256(_feeFlux), data);
-        dealPending(1);
+        _crossTransferFrom(from, to, amount, maxFluxFee, true, data);
     }
 
     /**
@@ -278,18 +292,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 amount,
         uint256 maxFluxFee
     ) external override onlyRouter {
-        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        uint256 _fee = amount.mul(fee).div(FEE_DENOM);
-        uint256 _feeFlux;
-        if (maxFluxFee > 0) {
-            _feeFlux = config.feeFlux(address(token), _fee);
-            _fee = 0;
-            require(_feeFlux <= maxFluxFee, "exceed flux fee limit!");
-        }
-        vault.depositFund(from, amount, _feeFlux);
-        require(_feeFlux < uint256(type(int256).max), "invalid fee");
-        _crossTransfer(from, to, amount, _fee, int256(_feeFlux));
-        dealPending(1);
+        _crossTransferFrom(from, to, amount, maxFluxFee, false, hex"");
     }
 
     function _onCrossTransfer(
@@ -298,6 +301,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaFee,
         int256 _feeFlux
     ) internal returns (bool) {
+        if (metaAmount == 0 && _feeFlux == 0) return true;
         uint256 tokenAmount = metaToNative(metaAmount);
         uint256 tokenFee = metaToNative(metaFee);
         uint256 before = token.balanceOf(to);
@@ -316,6 +320,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         bool success = _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
         if (success) {
             uint256 tokenAmount = metaToNative(metaAmount);
+            //config.caller().callExt(IHotpotCallee(to), remotePolyId, from, address(token), tokenAmount, data);
             address(config.caller()).call(abi.encodeWithSelector(IExtCaller.callExt.selector, to, remotePolyId, from, token, tokenAmount, data));
         }
         return success;
@@ -352,6 +357,17 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return newStatus;
     }
 
+    function _onCrossTransferByRole(
+        bytes memory data,
+        address fromAddress,
+        uint64 fromPolyId,
+        Relayer role
+    ) private {
+        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
+        require(remotePolyId == fromPolyId && remoteGateway == fromAddress, "invalid gateway");
+        if (crossConfirm(data, role)) onCrossTransferExecute(data);
+    }
+
     /// @notice onCrossTransfer is handler of crossTransfer event, called by poly ECCM contract
     function onCrossTransfer(
         bytes calldata data,
@@ -359,9 +375,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint64 fromPolyId
     ) external onlyManagerContract returns (bool) {
         address from = bytesToAddress(fromAddress);
-        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
-        if (crossConfirm(data, Relayer.POLY)) onCrossTransferExecute(data);
+        _onCrossTransferByRole(data, from, fromPolyId, Relayer.POLY);
         return true;
     }
 
@@ -370,12 +384,8 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         bytes calldata data,
         address fromAddress,
         uint64 fromPolyId
-    ) external onlyHotpoter returns (bool) {
-        address from = fromAddress;
-        require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
-        require(remotePolyId == fromPolyId && remoteGateway == from, "invalid gateway");
-        if (crossConfirm(data, Relayer.HOTPOT)) onCrossTransferExecute(data);
-        return true;
+    ) external onlyHotpoter {
+        _onCrossTransferByRole(data, fromAddress, fromPolyId, Relayer.HOTPOT);
     }
 
     /// @notice length of pending order

@@ -80,7 +80,7 @@ contract Config is OwnableUpgradeSafe, IConfig {
         uint8 tokenDecimals = ERC20UpgradeSafe(token).decimals();
         uint8 fluxDecimals = ERC20UpgradeSafe(address(FLUX)).decimals();
         uint256 _feeFlux = fee.mul(10**uint256(fluxDecimals - tokenDecimals)).mul(_feePrice).div(fluxPrice);
-        return (_feeFlux * 80) / 100;
+        return _feeFlux.mul(80).div(100);
     }
 
     function setCaller(IExtCaller _caller) external onlyOwner {

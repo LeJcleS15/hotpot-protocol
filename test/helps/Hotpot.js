@@ -55,7 +55,7 @@ class Hotpot {
         this.vaults = {};
         this.gateways = {};
         this.lens = await deploy('HotpotLens', []);
-        this.caller = await deploy('ExtCaller', [this.config.address]);
+        this.caller = await deploy('ExtCallerLocal', [this.config.address]);
         await this.config.setCaller(this.caller.address);
         this.callee = await deploy('Callee', [this.config.address]);
         await this.oracle.setPrice(this.flux.address, PRICE(0.5));

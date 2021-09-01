@@ -31,7 +31,7 @@ abstract contract RewardDistributor {
 
     function updateIncome(uint256 feeFlux, uint256 totalShares) internal {
         uint256 reserved = totalShares == 0 ? feeFlux : feeFlux.mul(RESERVED_POINT).div(RESERVED_DENOM);
-        uint256 remain = feeFlux.sub(reserved);
+        uint256 remain = feeFlux.sub(reserved); // if `totalShares` is zero, `remain` is also zero
         if (remain > 0) {
             uint256 deltaPerShare = remain.mul(PER_SHARE_SACLE).div(totalShares);
             rewardFluxPerShareStored = rewardFluxPerShareStored.add(deltaPerShare);

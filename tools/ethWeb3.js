@@ -29,7 +29,7 @@ class EthWeb3 {
         return tx.send(options);
     }
     addPrivateKey(prikey) {
-        console.log(prikey, typeof prikey);
+        //console.log(prikey, typeof prikey);
         const acc = this.web3.eth.accounts.privateKeyToAccount(prikey);
         this.web3.eth.accounts.wallet.add(acc);
         this.address = acc.address;
