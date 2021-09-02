@@ -25,7 +25,7 @@ contract Config is OwnableUpgradeSafe, IConfig {
     address public router;
     IPriceOracle public oracle;
     mapping(address => address) public override boundVault; // gateway=>vaults
-    IExtCaller public override caller;
+    IExtCaller public override extCaller;
 
     function initialize(
         IEthCrossChainManagerProxy _ccmp,
@@ -84,7 +84,7 @@ contract Config is OwnableUpgradeSafe, IConfig {
     }
 
     function setCaller(IExtCaller _caller) external onlyOwner {
-        caller = _caller;
+        extCaller = _caller;
     }
 
     function setRouter(address _router) external onlyOwner {

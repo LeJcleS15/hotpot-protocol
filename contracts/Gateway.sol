@@ -98,13 +98,6 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
 
     uint256 constant CROSS_TYPE_OFFSET = 256 - 64;
 
-    struct PendingTransfer {
-        uint256 crossId;
-        address to;
-        uint256 metaAmount;
-        uint256 metaFee;
-        int256 feeFlux;
-    }
     bytes[] public pending;
     mapping(bytes32 => uint256) public crossConfirms;
     uint256 public constant CONFIRM_THRESHOLD = 2;
@@ -321,7 +314,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         if (success) {
             uint256 tokenAmount = metaToNative(metaAmount);
             //config.caller().callExt(IHotpotCallee(to), remotePolyId, from, address(token), tokenAmount, data);
-            address(config.caller()).call(abi.encodeWithSelector(IExtCaller.callExt.selector, to, remotePolyId, from, token, tokenAmount, data));
+            address(config.extCaller()).call(abi.encodeWithSelector(IExtCaller.callExt.selector, to, remotePolyId, from, token, tokenAmount, data));
         }
         return success;
     }

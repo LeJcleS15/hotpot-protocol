@@ -23,5 +23,5 @@ interface IConfig {
 
     function feePrice(address token) external view returns (uint256, uint256);
 
-    function caller() external view returns (IExtCaller);
+    function extCaller() external view returns (IExtCaller);
 }

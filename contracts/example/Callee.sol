@@ -16,7 +16,7 @@ contract Callee is Ownable, IHotpotCallee {
     }
 
     modifier onlyHotpotCaller() {
-        require(address(config.caller()) == msg.sender, "onlyHotpotCaller");
+        require(address(config.extCaller()) == msg.sender, "onlyHotpotCaller");
         _;
     }
 
