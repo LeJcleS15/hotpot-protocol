@@ -3,14 +3,16 @@ const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 
 
 const NETENV = 'testnet';
+// NETENV: testnet,mainnet
+// net: heco,bsc,ok
 const Chains = [
     {
-        net: 'heco',
-        tx: '0x68de446ef2e366e19de8f9778c7c91e0f693d4320550f7dcc90441023679b542'
+        net: 'heco', // 源链
+        tx: '0x0f72dd474932c1afc3d29bc186f1a609bd587f514fa8e229b5448b710093a85c' // 发起hash
     },
     {
-        net: 'bsc',
-        tx: '0x6ef02ee3b8ad7f8a241e97ea02d531001fc7270ea61227958130c7aef7b28e16'
+        net: 'bsc',  // 目标链
+        tx: '0x726fe49cfc74d9c0ca15b033f496d7117437313d2710d79d43a2457b0359b6f1' // 二次确认hash
     }
 ]
 
@@ -86,12 +88,16 @@ async function main() {
     const destInput = destTx.input;
     const destParams = destChain.web3.eth.abi.decodeParameters(['bytes', 'address', 'uint64'], destInput.slice(10));
 
-    console.log(srcData)
-    console.log(destParams[0])
+    // console.log(srcData)
+    // console.log(destParams[0])
 
     try {
         const destR = isCrossData ? destChain.web3.eth.abi.decodeParameters(CrossTransferWithDataTypes, destParams[0]) : destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, destParams[0]);
-        console.log('destR:', destR);
+        const keys = ['crossId', 'to', 'amount', 'fee', 'feeFlux', 'from', 'extData'];
+        console.log('destR:', keys.reduce((t, name, i) => {
+            (destR[i] && (t[name] = destR[i]), t);
+            return t;
+        }, {}));
     } catch (e) {
         console.log(e)
     }
@@ -107,13 +113,13 @@ async function main() {
 
     const gateway = ContractAt(destChain, Gateway.abi, destContract);
 
-    const confirms = await gateway.methods.crossConfirms(srcHash).call();
-    const exist = await gateway.methods.existedIds(srcLogs.crossId).call();
+    const confirms = await gateway.methods.crossConfirms(srcHash).call(); // 1 hotpot 2 poly 3:hotpot+poly
+    const status = await gateway.methods.existedIds(srcLogs.crossId).call();
     const pendingLength = await gateway.methods.pendingLength().call();
-    console.log(confirms.toString('hex'), exist.toString(), pendingLength.toString())
+    console.log("confrim:", confirms.toString('hex'), "status:", status.toString(), "pending:", pendingLength.toString())
     for (let i = 0; i < pendingLength; i++) {
         const pendingi = await gateway.methods.pending(i).call();
-        console.log(pendingi);
+        console.log("pending", i, destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, pendingi));
     }
 
 }
