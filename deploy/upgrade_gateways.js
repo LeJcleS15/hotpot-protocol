@@ -73,7 +73,7 @@ module.exports = async function (hre) {
     for (let j = 0; j < symbols.length; j++) {
       const symbol = symbols[j];
       const gateway = gateways[symbol];
-      if (symbol == 'DAI') continue;
+      if (symbol != 'DAI') continue;
       console.log('token:', symbol, gateway, await implCheck(gateway));
       const oldC = await ContractAt(Contract, gateway)
       const pendingLength = await oldC.pendingLength();
