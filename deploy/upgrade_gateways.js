@@ -79,7 +79,7 @@ module.exports = async function (hre) {
       const pendingLength = await oldC.pendingLength();
       if (pendingLength > 0) {
         console.log("skip pending:", pendingLength.toString());
-        //continue;
+        continue;
       }
       const newC = await upgradeProxy(gateway, Contract);
     }
