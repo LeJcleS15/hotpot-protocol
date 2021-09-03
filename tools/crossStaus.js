@@ -1,5 +1,6 @@
 const { EthWeb3 } = require('./ethWeb3');
 const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
+const Config = require('../artifacts/contracts/Config.sol/Config.json');
 
 
 const NETENV = 'testnet';
@@ -7,16 +8,17 @@ const NETENV = 'testnet';
 // net: heco,bsc,ok
 const Chains = [
     {
-        net: 'heco', // 源链
-        tx: '0x0f72dd474932c1afc3d29bc186f1a609bd587f514fa8e229b5448b710093a85c' // 发起hash
+        net: 'bsc', // 源链
+        tx: '0xcbf9771c29b3941760dbd8065972fb28f6b7fbf6153d3f9aa05f8862bbcae66e' // 发起hash
     },
     {
-        net: 'bsc',  // 目标链
-        tx: '0x726fe49cfc74d9c0ca15b033f496d7117437313d2710d79d43a2457b0359b6f1' // 二次确认hash
+        net: 'ok',  // 目标链
+        tx: '0x9627da91c071c30b1d43d83f4611e60f67d71149189708ff1b639a16e5748077' // 二次确认hash
     }
 ]
 
 const networks = require('../networks.json')[NETENV];
+const { Contract } = require('ethers');
 
 // const PRIKEY = '1111111111111111111111111111111111111111111111111111111111111111';
 async function newChain(name) {
@@ -112,6 +114,11 @@ async function main() {
     console.log('dest gateway:', destContract);
 
     const gateway = ContractAt(destChain, Gateway.abi, destContract);
+
+    const configAddress = await gateway.methods.config().call();
+    const ConfigC = ContractAt(destChain, Config.abi, configAddress);
+    const ECCM = await ConfigC.methods.getEthCrossChainManager().call();
+    await gateway.methods.onCrossTransfer(destParams[0], destParams[1], destParams[2]).call({ from: ECCM });
 
     const confirms = await gateway.methods.crossConfirms(srcHash).call(); // 1 hotpot 2 poly 3:hotpot+poly
     const status = await gateway.methods.existedIds(srcLogs.crossId).call();

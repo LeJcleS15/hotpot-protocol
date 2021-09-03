@@ -574,75 +574,7 @@ describe("Cross Test", function () {
         }
     });
 
-    it("10. CrossTransfer pending (deal by crosstransfer) test", async function () {
-        const srcChain = this.Chain1;
-        const destChain = this.Chain2;
-
-        for (let i = 0; i < testcasees.crossTransfer.length; i++) {
-            const casei = testcasees.crossTransfer[i];
-            const symbol = casei.symbol;
-
-            const to = Hotpot.destAccount.address;
-
-            const beforeSrc = await this.Status(srcChain, symbol, destChain.polyId);
-            const beforeDest = await this.Status(destChain, symbol, srcChain.polyId, to);
-
-            const amount = beforeDest.vault.balance.add(1);
-
-            const tx = await Hotpot.CrossTransfer(srcChain, destChain, symbol, to, amount, casei.useFeeFlux);
-
-            const receipt = await tx.wait(0);
-            const iface = await ethers.getContractFactory('GatewayMock').then(gateway => gateway.interface);
-            const CrossTransferSig = iface.getEventTopic('CrossTransfer');
-            const crossLog = receipt.logs.find(log => log.topics[0] == CrossTransferSig)
-            const crossEvent = iface.parseLog(crossLog);
-
-            const abi = new ethers.utils.AbiCoder();
-            const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
-            await destChain.onCrossTransferByHotpoter(symbol, crossData, beforeSrc.vault.gateway.address, srcChain.polyId);
-            {
-                const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
-                expect(afterDest.gateway.pendingAmount).to.equal(amount);
-                const pendingLength = afterDest.gateway.pendings.length;
-                expect(pendingLength).to.eq(1, "pending check");
-                const pending = afterDest.gateway.pendings[0];
-                expect(pending).to.equal(crossData);
-                await Hotpot.CrossTransfer(destChain, srcChain, symbol, to, 1, true, true);
-
-            }
-            const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
-            const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
-            expect(afterDest.gateway.pendings.length).to.eq(0, "pending check");
-
-            const srcAmount = await srcChain.toNative(symbol, crossEvent.args.amount);
-            const srcFee = await srcChain.toNative(symbol, crossEvent.args.fee);
-            const destAmount = await destChain.toNative(symbol, crossEvent.args.amount);
-            const destFee = await destChain.toNative(symbol, crossEvent.args.fee);
-
-            if (casei.useFeeFlux) {
-                expect(crossEvent.args.fee).to.equal(0, "fee shoule be 0 if useFeeFlux");
-                const feeFlux = await srcChain.feeFlux(beforeSrc.vault.gateway, amount);
-                expect(crossEvent.args.feeFlux).to.eq(feeFlux, "feeFlux different");
-            }
-            expect(afterSrc.vault.fluxBalance).to.eq(afterSrc.vault.gateDebt.debtFlux, "src chain debt should keep same");
-            expect(afterDest.vault.pendingFlux.total.add(afterDest.vault.reservedFeeFlux)).to.equal(afterDest.vault.gateDebt.debtFlux.abs());
-
-            expect(srcAmount.add(srcFee)).to.equal(amount);
-            expect(afterDest.token.toBalance.sub(beforeDest.token.toBalance)).to.equal(destAmount);
-            expect(afterSrc.vault.gateDebt.debt.sub(beforeSrc.vault.gateDebt.debt)).to.equal(amount.sub(1));
-            expect(beforeDest.vault.gateDebt.debt.sub(afterDest.vault.gateDebt.debt)).to.equal(destAmount.add(destFee).sub(1));
-
-            expect(afterSrc.vault.gateDebt.debtFlux.sub(beforeSrc.vault.gateDebt.debtFlux)).to.equal(crossEvent.args.feeFlux);
-            expect(beforeDest.vault.gateDebt.debtFlux.sub(afterDest.vault.gateDebt.debtFlux)).to.equal(crossEvent.args.feeFlux);
-
-            expect(beforeSrc.vault.gateDebt.debt.add(beforeDest.vault.gateDebt.debt)).to.equal(0);
-            expect(beforeSrc.vault.gateDebt.debtFlux.add(beforeDest.vault.gateDebt.debtFlux)).to.equal(0);
-            expect(afterSrc.vault.gateDebt.debt.add(afterDest.vault.gateDebt.debt)).to.equal(0);
-            expect(afterSrc.vault.gateDebt.debtFlux.add(afterDest.vault.gateDebt.debtFlux)).to.equal(0);
-        }
-    });
-
-    it("11. CrossTransfer pending (deal by crossrebalance) test", async function () {
+    it("10. CrossTransfer pending (by crossrebalance) test", async function () {
         const srcChain = this.Chain1;
         const destChain = this.Chain2;
 

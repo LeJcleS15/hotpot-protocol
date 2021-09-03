@@ -9,10 +9,10 @@ contract GatewayMock is Gateway {
 
     function _onCrossTransferExecute(bytes memory data) internal override returns (bool) {
         (uint256 crossId, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
-        CrossStatus status = existedIds[crossId];
+        CrossStatus status = existedIds[crossId]; // already marked COMPLETE
         bool success = _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
         CrossStatus newStatus = success ? CrossStatus.COMPLETED : CrossStatus.PENDING;
-        if (status != newStatus) {
+        if (status == CrossStatus.COMPLETED || status != newStatus) {
             emit OnCrossTransfer(crossId, uint256(newStatus), to, metaAmount, metaFee, _feeFlux);
         }
         return success;
@@ -23,10 +23,10 @@ contract GatewayMock is Gateway {
             data,
             (uint256, address, uint256, uint256, int256, address, bytes)
         );
-        CrossStatus status = existedIds[crossId];
+        CrossStatus status = existedIds[crossId]; // already marked COMPLETE
         bool success = _onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData);
         CrossStatus newStatus = success ? CrossStatus.COMPLETED : CrossStatus.PENDING;
-        if (status != newStatus) {
+        if (status == CrossStatus.COMPLETED || status != newStatus) {
             emit OnCrossTransfer(crossId, uint256(newStatus), to, metaAmount, metaFee, _feeFlux);
         }
         return success;

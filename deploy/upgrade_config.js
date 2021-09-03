@@ -2,6 +2,7 @@ const { ethers, upgrades } = require('hardhat');
 const record = require('../helps/record');
 const ContractKey = ["Config"];
 const Contract = "Config";
+const DeployedBytecode = require(`../artifacts/contracts/${Contract}.sol/${Contract}.json`).deployedBytecode;
 
 function ContractAt(Contract, address) {
   return ethers.getSigners().then(
@@ -16,9 +17,27 @@ function ContractAt(Contract, address) {
 async function upgradeProxy(oldAddress, Contract) {
   const instance = await ContractAt(Contract, oldAddress)
   const newC = await ethers.getContractFactory(Contract);
-  const upgraded = await upgrades.upgradeProxy(instance.address, newC);
-  console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
-  return upgraded;
+  if (await implCheck(oldAddress, DeployedBytecode)) {
+    console.log(`>> SameImpl ${Contract} at ${instance.address}`);
+  } else {
+    const upgraded = await upgrades.upgradeProxy(instance.address, newC, { unsafeAllowRenames: true });
+    console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
+  }
+  return instance;
+}
+
+async function getProxyImplementation(address) {
+  const proxyAdmin = await upgrades.admin.getInstance();
+  return proxyAdmin.callStatic.getProxyImplementation(address);
+}
+
+const CodeCache = {}
+async function implCheck(address, newImplCode) {
+  const impl = await getProxyImplementation(address);
+  if (!CodeCache[impl]) {
+    CodeCache[impl] = await ethers.provider.getCode(impl);
+  }
+  return newImplCode == CodeCache[impl];
 }
 
 
@@ -34,14 +53,11 @@ module.exports = async function (hre) {
   {
     const Config = oldAddress;
     const oldC = await ContractAt(Contract, Config)
-    //const newC = await upgradeProxy(Config, Contract);
-
-    //await newC.setRouter(Deployed.RouterV2);
-    await oldC.setCaller(Deployed.ExtCaller);
+    const newC = await upgradeProxy(Config, Contract);
 
     console.log("CHAINID:", Number(await oldC.getChainID()))
     console.log(await oldC.isRouter(Deployed.Router), await oldC.isRouter(Deployed.RouterV2), await oldC.oracle())
-    console.log(Deployed.ExtCaller, await oldC.caller())
+    console.log(Deployed.ExtCaller, await oldC.extCaller())
   }
 }
 module.exports.tags = ["upgradeConfig"];

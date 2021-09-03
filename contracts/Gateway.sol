@@ -102,6 +102,11 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     mapping(bytes32 => uint256) public crossConfirms;
     uint256 public constant CONFIRM_THRESHOLD = 2;
 
+    modifier onlyEOA() {
+        require(msg.sender == tx.origin, "onlyEOA");
+        _;
+    }
+
     modifier onlyRouter() {
         require(config.isRouter(msg.sender), "onlyRouter");
         _;
@@ -221,7 +226,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(config.isBalancer(from), "onlyBalancer");
         vault.depositFund(from, uint256(amount), fluxAmount);
-        dealPending(pending.length);
+        _dealPending(pending.length);
         (int256 debt, int256 debtFlux) = vault.gateDebt(address(this));
         require(debt <= 0, "invalid amount");
         require(debtFlux <= 0, "invalid amount");
@@ -251,7 +256,6 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         }
         if (withData) _crossTransferWithData(from, to, amount.sub(_fee), _fee, int256(_feeFlux), data);
         else _crossTransfer(from, to, amount.sub(_fee), _fee, int256(_feeFlux));
-        dealPending(1);
     }
 
     /**
@@ -337,13 +341,14 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     /// @dev Do not call dealPending in onCrossTransferExecute!
     function onCrossTransferExecute(bytes memory data) private returns (CrossStatus) {
         uint256 crossId = abi.decode(data, (uint256));
-        CrossStatus status = existedIds[crossId];
-        if (status == CrossStatus.COMPLETED) return status;
+        CrossStatus oldStatus = existedIds[crossId];
+        if (oldStatus == CrossStatus.COMPLETED) return oldStatus;
+        existedIds[crossId] = CrossStatus.COMPLETED; // mark as COMPLETED to prevent Reentrancy Attacks, because _onCrossTransferWithDataExecute will call external contract
         bool succeed = CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
         CrossStatus newStatus = succeed ? CrossStatus.COMPLETED : CrossStatus.PENDING;
-        if (status != newStatus) {
-            // NONE->COMPLETED or NONE->PENDING
-            existedIds[crossId] = newStatus;
+        if (existedIds[crossId] != newStatus) existedIds[crossId] = newStatus; // change to new Status
+        if (oldStatus != newStatus) {
+            // NONE->COMPLETED or NONE->PENDING or PENDING->COMPLETED
             emit OnCrossTransferStatus(crossId, uint256(newStatus));
             if (newStatus == CrossStatus.PENDING) pending.push(data); // NONE->PENDING
         }
@@ -387,15 +392,22 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
 
     /// @notice deal pending order
-    /// @dev Do not call this in onCrossTransferExecute!
-    function dealPending(uint256 count) public {
+    /// @dev Can only be called be called in dealPending(...) or crossRebalanceFrom(...)!!!
+    /// @dev There is a risk of reentry!!!
+    function _dealPending(uint256 count) private {
         if (pending.length < count) count = pending.length;
         while (count-- > 0) {
+            // onCrossTransferExecute(...) may call any external contracts.
             if (onCrossTransferExecute(pending[pending.length - 1]) == CrossStatus.COMPLETED) {
                 pending.pop();
             } else {
                 break;
             }
         }
+    }
+
+    /// @notice deal pending order
+    function dealPending(uint256 count) external onlyEOA {
+        _dealPending(count);
     }
 }
