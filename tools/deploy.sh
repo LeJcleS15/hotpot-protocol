@@ -32,7 +32,7 @@ net() {
 export NETENV=MAINNET
 npx hardhat compile
 
-ACTION=deployExtCaller
+ACTION=deployRouterV2
 
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION

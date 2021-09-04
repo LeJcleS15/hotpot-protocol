@@ -3,22 +3,21 @@ const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 const Config = require('../artifacts/contracts/Config.sol/Config.json');
 
 
-const NETENV = 'testnet';
+const NETENV = 'mainnet';
 // NETENV: testnet,mainnet
 // net: heco,bsc,ok
 const Chains = [
     {
-        net: 'bsc', // 源链
-        tx: '0xcbf9771c29b3941760dbd8065972fb28f6b7fbf6153d3f9aa05f8862bbcae66e' // 发起hash
+        net: 'heco', // 源链
+        tx: '0xc09b968dfcb4a4c3c5dacc43f480c0900ef4924ca4cfb1f349490bf544815d5e' // 发起hash
     },
     {
-        net: 'ok',  // 目标链
-        tx: '0x9627da91c071c30b1d43d83f4611e60f67d71149189708ff1b639a16e5748077' // 二次确认hash
+        net: 'bsc',  // 目标链
+        tx: '0xb12eee3cfabe6cef428a1d7454359030801730a4c403cb2dc9c93845bae105a6' // 二次确认hash
     }
 ]
 
 const networks = require('../networks.json')[NETENV];
-const { Contract } = require('ethers');
 
 // const PRIKEY = '1111111111111111111111111111111111111111111111111111111111111111';
 async function newChain(name) {
@@ -128,7 +127,8 @@ async function main() {
         const pendingi = await gateway.methods.pending(i).call();
         console.log("pending", i, destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, pendingi));
     }
-
+    //const tx = gateway.methods.dealPending(1);
+    //await destChain.sendTx(tx);
 }
 
 main();

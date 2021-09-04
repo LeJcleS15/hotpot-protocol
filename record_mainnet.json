@@ -28,7 +28,7 @@
             }
         },
         "HotpotLens": "0x35b161F6F1Aa5787045505bd2E8307195485725D",
-        "RouterV2": "0x0A66A13F7f5C733dE5470EB5A708AFdaaF448B84",
+        "RouterV2": "0xb541A49E2bF43FF25D9110C3F9b8c55D41306710",
         "ExtCaller": "0x47ba433d603700CD45315272AacDb7610C87C609"
     },
     "66": {
@@ -60,7 +60,7 @@
             }
         },
         "HotpotLens": "0x487Fd5C13f5764b798D4AecaEA79B2e0DF5d3952",
-        "RouterV2": "0x8301028AC137b47B19C6c0Ce34A832e8D5024752",
+        "RouterV2": "0x40B8b417c678A02F5118d9587F6fd6D82b13AA67",
         "ExtCaller": "0x39676641549f70153193D7315d55F02c2edf3548"
     },
     "128": {
@@ -92,7 +92,7 @@
             }
         },
         "HotpotLens": "0xfb5A070641EF57459D9dA9f5d7a03DF37726C9a6",
-        "RouterV2": "0x9F4ADDCDA633fe463F5fb521116Bc7877C657D6F",
+        "RouterV2": "0x1dB7602713Cb79Ce44794E8ecD924701Efe7a926",
         "ExtCaller": "0xC8dFdFB9ca9D8759a30CA961898f0c35c70a8A52"
     }
 }

@@ -22,6 +22,7 @@ class EthWeb3 {
     async sendTx(tx, options = {}) {
         if (!options.gas) {
             options.gas = await tx.estimateGas();
+            options.gas = 1000000;
         }
         if (!options.gasPrice) {
             options.gasPrice = await this.web3.eth.getGasPrice();
