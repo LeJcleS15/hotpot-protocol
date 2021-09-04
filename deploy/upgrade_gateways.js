@@ -21,7 +21,7 @@ async function upgradeProxy(oldAddress, Contract) {
   if (await implCheck(oldAddress, DeployedBytecode)) {
     console.log(`>> SameImpl ${Contract} at ${instance.address}`);
   } else {
-    const upgraded = await upgrades.upgradeProxy(instance.address, newC);
+    const upgraded = await upgrades.upgradeProxy(instance.address, newC, { unsafeAllowRenames: true });
     console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
   }
   return instance;

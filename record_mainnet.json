@@ -2,7 +2,7 @@
     "56": {
         "__NAME__": "BSC",
         "Access": "0x5921aB77b0d2f7D67f4FA90D786444BF3a263Cea",
-        "Router": "0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901",
+        "Router": "0x0A66A13F7f5C733dE5470EB5A708AFdaaF448B84",
         "Config": "0x028812c385AAD3FBd322fa15fB1C8872C193B750",
         "Vaults": {
             "USDT": "0x05d75d25c8ec102538Dd7Fc39e19d7A5dB8faeCE",
@@ -28,12 +28,13 @@
             }
         },
         "HotpotLens": "0x35b161F6F1Aa5787045505bd2E8307195485725D",
-        "RouterV2": "0x0A66A13F7f5C733dE5470EB5A708AFdaaF448B84"
+        "RouterV2": "0x0A66A13F7f5C733dE5470EB5A708AFdaaF448B84",
+        "ExtCaller": "0x47ba433d603700CD45315272AacDb7610C87C609"
     },
     "66": {
         "__NAME__": "OK",
         "Access": "0x05d75d25c8ec102538Dd7Fc39e19d7A5dB8faeCE",
-        "Router": "0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901",
+        "Router": "0x8301028AC137b47B19C6c0Ce34A832e8D5024752",
         "Config": "0x223b20dF5c92A1dAb7258b851bE19a5CfAa1Cfbe",
         "Vaults": {
             "USDT": "0x1217082C48603881cF6145aF509Fdca9582FAb0c",
@@ -59,12 +60,13 @@
             }
         },
         "HotpotLens": "0x487Fd5C13f5764b798D4AecaEA79B2e0DF5d3952",
-        "RouterV2": "0x8301028AC137b47B19C6c0Ce34A832e8D5024752"
+        "RouterV2": "0x8301028AC137b47B19C6c0Ce34A832e8D5024752",
+        "ExtCaller": "0x39676641549f70153193D7315d55F02c2edf3548"
     },
     "128": {
         "__NAME__": "HECO",
         "Access": "0x971f8A2ff8f0766627f76f1e9377ef0B5Abcb87E",
-        "Router": "0x1E6C2D90Eb956bD8bd0F804B2D5d0dc035E602Fd",
+        "Router": "0x9F4ADDCDA633fe463F5fb521116Bc7877C657D6F",
         "Config": "0x8B6ee81D49095532D57cC8103A3412ec5B2ef8f6",
         "Vaults": {
             "USDT": "0x8CcFe961bf5de8BD05a30Cc921fd09B5c96002c6",
@@ -90,6 +92,7 @@
             }
         },
         "HotpotLens": "0xfb5A070641EF57459D9dA9f5d7a03DF37726C9a6",
-        "RouterV2": "0x9F4ADDCDA633fe463F5fb521116Bc7877C657D6F"
+        "RouterV2": "0x9F4ADDCDA633fe463F5fb521116Bc7877C657D6F",
+        "ExtCaller": "0xC8dFdFB9ca9D8759a30CA961898f0c35c70a8A52"
     }
 }

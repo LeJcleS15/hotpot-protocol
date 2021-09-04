@@ -55,9 +55,9 @@ module.exports = async function (hre) {
     const oldC = await ContractAt(Contract, Config)
     const newC = await upgradeProxy(Config, Contract);
 
-    console.log("CHAINID:", Number(await oldC.getChainID()))
+    //console.log("CHAINID:", Number(await oldC.getChainID()))
     console.log(await oldC.isRouter(Deployed.Router), await oldC.isRouter(Deployed.RouterV2), await oldC.oracle())
-    console.log(Deployed.ExtCaller, await oldC.extCaller())
+    //console.log(Deployed.ExtCaller, await oldC.extCaller())
   }
 }
 module.exports.tags = ["upgradeConfig"];

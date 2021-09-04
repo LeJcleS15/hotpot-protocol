@@ -26,11 +26,11 @@ net() {
     fi
 }
 
-export NETENV=TESTNET
-#export NETENV=MAINNET
+#export NETENV=TESTNET
+export NETENV=MAINNET
 npx hardhat compile
 
-UPGRADE=upgradeGateways
+UPGRADE=upgradeConfig
 
 NETWORK=`net ok` $UPGRADE
 NETWORK=`net heco` $UPGRADE
