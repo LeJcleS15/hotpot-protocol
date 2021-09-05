@@ -15,8 +15,10 @@ net() {
 export NETENV=MAINNET
 npx hardhat compile
 
-NETWORK=`net ok` setFee
-NETWORK=`net heco` setFee
-NETWORK=`net bsc` setFee
+ACTION=setFee
+
+NETWORK=`net ok` $ACTION
+NETWORK=`net heco` $ACTION
+NETWORK=`net bsc` $ACTION
 
 
