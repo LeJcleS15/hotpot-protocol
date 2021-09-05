@@ -9,11 +9,11 @@ const NETENV = 'mainnet';
 const Chains = [
     {
         net: 'heco', // 源链
-        tx: '0xc09b968dfcb4a4c3c5dacc43f480c0900ef4924ca4cfb1f349490bf544815d5e' // 发起hash
+        tx: '0x3d9c5a5477f381ab1bcd03ea4d12431fce9b81cf38a074cd7713209b13351c00' // 发起hash
     },
     {
         net: 'bsc',  // 目标链
-        tx: '0xb12eee3cfabe6cef428a1d7454359030801730a4c403cb2dc9c93845bae105a6' // 二次确认hash
+        tx: '0x58d1859c8f58b7d1ea6b09677ca51cda140ca610bc01d41f6a4176e1c53f8fe3' // 二次确认hash
     }
 ]
 
@@ -116,8 +116,8 @@ async function main() {
 
     const configAddress = await gateway.methods.config().call();
     const ConfigC = ContractAt(destChain, Config.abi, configAddress);
-    const ECCM = await ConfigC.methods.getEthCrossChainManager().call();
-    await gateway.methods.onCrossTransfer(destParams[0], destParams[1], destParams[2]).call({ from: ECCM });
+    //const ECCM = await ConfigC.methods.getEthCrossChainManager().call();
+    //await gateway.methods.onCrossTransfer(destParams[0], destParams[1], destParams[2]).call({ from: ECCM });
 
     const confirms = await gateway.methods.crossConfirms(srcHash).call(); // 1 hotpot 2 poly 3:hotpot+poly
     const status = await gateway.methods.existedIds(srcLogs.crossId).call();
