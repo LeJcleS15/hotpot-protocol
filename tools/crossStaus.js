@@ -100,7 +100,7 @@ async function main() {
             return t;
         }, {}));
     } catch (e) {
-        console.log(e)
+        console.log("二次确认错误:", e)
     }
 
     const destHash = destChain.web3.utils.keccak256(destParams[0]);
