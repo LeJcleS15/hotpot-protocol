@@ -25,7 +25,7 @@ npx hardhat compile
 
 ACTION=withdrawNativeFee
 
-#NETWORK=`net ok` $ACTION
+NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION
 NETWORK=`net bsc` $ACTION
 

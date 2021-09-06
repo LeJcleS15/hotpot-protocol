@@ -32,7 +32,7 @@ npx hardhat compile
 
 UPGRADE=upgradeConfig
 
-NETWORK=`net ok` $UPGRADE
-NETWORK=`net heco` $UPGRADE
+#NETWORK=`net ok` $UPGRADE
+#NETWORK=`net heco` $UPGRADE
 NETWORK=`net bsc` $UPGRADE
 
