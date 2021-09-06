@@ -14,6 +14,7 @@ import {IConfig} from "./interfaces/IConfig.sol";
 import {IGateway} from "./interfaces/IGateway.sol";
 import {IVault} from "./interfaces/IVault.sol";
 import {IExtCaller} from "./interfaces/IExtCaller.sol";
+import {IHotpotCallee} from "./interfaces/IHotpotCallee.sol";
 
 abstract contract CrossBase {
     function getEthCrossChainManager() internal view virtual returns (IEthCrossChainManager);
@@ -75,9 +76,9 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
     enum CrossStatus {
         NONE,
-        PENDING,
+        PENDING, // deprecated
         COMPLETED,
-        REVERTED
+        REVERTED // deprecated
     }
     enum CrossType {
         TRANSFER,
@@ -98,7 +99,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
 
     uint256 constant CROSS_TYPE_OFFSET = 256 - 64;
 
-    bytes[] public pending;
+    bytes[] public pending; // deprecated
     mapping(bytes32 => uint256) public crossConfirms;
     uint256 public constant CONFIRM_THRESHOLD = 2;
 
@@ -175,6 +176,12 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         return countSetBits(bitmap) >= CONFIRM_THRESHOLD;
     }
 
+    function confirmed(bytes memory crossData) private view returns (bool) {
+        bytes32 sig = keccak256(crossData);
+        uint256 bitmap = crossConfirms[sig];
+        return countSetBits(bitmap) >= CONFIRM_THRESHOLD;
+    }
+
     function _crossTransfer(
         address from,
         address to,
@@ -226,7 +233,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(config.isBalancer(from), "onlyBalancer");
         vault.depositFund(from, uint256(amount), fluxAmount);
-        _dealPending(pending.length);
+        //_dealPending(pending.length);
         (int256 debt, int256 debtFlux) = vault.gateDebt(address(this));
         require(debt <= 0, "invalid amount");
         require(debtFlux <= 0, "invalid amount");
@@ -297,13 +304,11 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaAmount,
         uint256 metaFee,
         int256 _feeFlux
-    ) internal returns (bool) {
-        if (metaAmount == 0 && _feeFlux == 0) return true;
+    ) internal {
+        if (metaAmount == 0 && _feeFlux == 0) return;
         uint256 tokenAmount = metaToNative(metaAmount);
         uint256 tokenFee = metaToNative(metaFee);
-        uint256 before = token.balanceOf(to);
-        (bool success, ) = address(vault).call(abi.encodeWithSelector(vault.withdrawFund.selector, to, tokenAmount, tokenFee, _feeFlux));
-        return success && token.balanceOf(to) == tokenAmount.add(before);
+        vault.withdrawFund(to, tokenAmount, tokenFee, _feeFlux);
     }
 
     function _onCrossTransferWithData(
@@ -313,46 +318,34 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 metaFee,
         int256 _feeFlux,
         bytes memory data
-    ) internal returns (bool) {
-        bool success = _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
-        if (success) {
-            uint256 tokenAmount = metaToNative(metaAmount);
-            //config.caller().callExt(IHotpotCallee(to), remotePolyId, from, address(token), tokenAmount, data);
-            address(config.extCaller()).call(abi.encodeWithSelector(IExtCaller.callExt.selector, to, remotePolyId, from, token, tokenAmount, data));
-        }
-        return success;
+    ) internal {
+        _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
+        uint256 tokenAmount = metaToNative(metaAmount);
+        config.extCaller().callExt(IHotpotCallee(to), remotePolyId, from, address(token), tokenAmount, data);
     }
 
     /// @dev virtual for unit test
-    function _onCrossTransferExecute(bytes memory data) internal virtual returns (bool) {
+    function _onCrossTransferExecute(bytes memory data) internal virtual {
         (, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux) = abi.decode(data, (uint256, address, uint256, uint256, int256));
-        return _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
+        _onCrossTransfer(to, metaAmount, metaFee, _feeFlux);
     }
 
     /// @dev virtual for unit test
-    function _onCrossTransferWithDataExecute(bytes memory data) internal virtual returns (bool) {
+    function _onCrossTransferWithDataExecute(bytes memory data) internal virtual {
         (, address to, uint256 metaAmount, uint256 metaFee, int256 _feeFlux, address from, bytes memory extData) = abi.decode(
             data,
             (uint256, address, uint256, uint256, int256, address, bytes)
         );
-        return _onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData);
+        _onCrossTransferWithData(from, to, metaAmount, metaFee, _feeFlux, extData);
     }
 
-    /// @dev Do not call dealPending in onCrossTransferExecute!
-    function onCrossTransferExecute(bytes memory data) private returns (CrossStatus) {
+    function onCrossTransferExecute(bytes calldata data) external {
+        require(confirmed(data), "onlyConfirmed");
         uint256 crossId = abi.decode(data, (uint256));
-        CrossStatus oldStatus = existedIds[crossId];
-        if (oldStatus == CrossStatus.COMPLETED) return oldStatus;
+        require(existedIds[crossId] == CrossStatus.NONE, "cross completed!");
         existedIds[crossId] = CrossStatus.COMPLETED; // mark as COMPLETED to prevent Reentrancy Attacks, because _onCrossTransferWithDataExecute will call external contract
-        bool succeed = CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
-        CrossStatus newStatus = succeed ? CrossStatus.COMPLETED : CrossStatus.PENDING;
-        if (existedIds[crossId] != newStatus) existedIds[crossId] = newStatus; // change to new Status
-        if (oldStatus != newStatus) {
-            // NONE->COMPLETED or NONE->PENDING or PENDING->COMPLETED
-            emit OnCrossTransferStatus(crossId, uint256(newStatus));
-            if (newStatus == CrossStatus.PENDING) pending.push(data); // NONE->PENDING
-        }
-        return newStatus;
+        CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
+        emit OnCrossTransfer(crossId);
     }
 
     function _onCrossTransferByRole(
@@ -363,7 +356,11 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     ) private {
         require(bindStatus == CrossStatus.COMPLETED, "bind not completed");
         require(remotePolyId == fromPolyId && remoteGateway == fromAddress, "invalid gateway");
-        if (crossConfirm(data, role)) onCrossTransferExecute(data);
+        if (crossConfirm(data, role)) {
+            // if onCrossTransferExecute failed, it will be called by EOA account again.
+            //this.onCrossTransferExecute(data);
+            address(this).call(abi.encodeWithSelector(this.onCrossTransferExecute.selector, data));
+        }
     }
 
     /// @notice onCrossTransfer is handler of crossTransfer event, called by poly ECCM contract
@@ -384,30 +381,5 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint64 fromPolyId
     ) external onlyHotpoter {
         _onCrossTransferByRole(data, fromAddress, fromPolyId, Relayer.HOTPOT);
-    }
-
-    /// @notice length of pending order
-    function pendingLength() external view returns (uint256) {
-        return pending.length;
-    }
-
-    /// @notice deal pending order
-    /// @dev Can only be called be called in dealPending(...) or crossRebalanceFrom(...)!!!
-    /// @dev There is a risk of reentry!!!
-    function _dealPending(uint256 count) private {
-        if (pending.length < count) count = pending.length;
-        while (count-- > 0) {
-            // onCrossTransferExecute(...) may call any external contracts.
-            if (onCrossTransferExecute(pending[pending.length - 1]) == CrossStatus.COMPLETED) {
-                pending.pop();
-            } else {
-                break;
-            }
-        }
-    }
-
-    /// @notice deal pending order
-    function dealPending(uint256 count) external onlyEOA {
-        _dealPending(count);
     }
 }
