@@ -92,16 +92,17 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     IERC20 public token;
     uint256 public nextCrossId;
     uint256 public fee;
-    uint256 public constant FEE_DENOM = 10000;
-    mapping(uint256 => CrossStatus) public existedIds;
-    uint8 public constant decimals = 18;
-    bytes constant CROSS_METHOD = "onCrossTransfer";
-
-    uint256 constant CROSS_TYPE_OFFSET = 256 - 64;
-
+    mapping(uint256 => CrossStatus) public existedIds; // deprecated
     bytes[] public pending; // deprecated
     mapping(bytes32 => uint256) public crossConfirms;
+
+    uint8 public constant decimals = 18;
+    bytes constant CROSS_METHOD = "onCrossTransfer";
+    uint256 constant CROSS_TYPE_OFFSET = 256 - 64;
     uint256 public constant CONFIRM_THRESHOLD = 2;
+    uint256 public constant FEE_DENOM = 10000;
+    uint256 private constant EXECUTED_FLAG = 1 << 255; // 0x8000000000000000000000000000000000000000000000000000000000000000L
+    uint256 private constant BITMAP_MASK = EXECUTED_FLAG - 1; // 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffL
 
     modifier onlyEOA() {
         require(msg.sender == tx.origin, "onlyEOA");
@@ -161,6 +162,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
 
     function countSetBits(uint256 bitmap) private pure returns (uint256) {
         uint256 count = 0;
+        bitmap &= BITMAP_MASK;
         while (bitmap > 0) {
             bitmap &= (bitmap - 1);
             count++;
@@ -173,13 +175,20 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         uint256 bitmap = crossConfirms[sig] | (1 << uint256(role));
         crossConfirms[sig] = bitmap;
         emit CrossConfirm(sig, uint256(role), bitmap);
+        return confirmed(bitmap);
+    }
+
+    function confirmed(uint256 bitmap) private pure returns (bool) {
         return countSetBits(bitmap) >= CONFIRM_THRESHOLD;
     }
 
-    function confirmed(bytes memory crossData) private view returns (bool) {
+    /// @dev check 'crossData' was confirmed and haven't been executed
+    function executeGuard(bytes memory crossData) private {
         bytes32 sig = keccak256(crossData);
         uint256 bitmap = crossConfirms[sig];
-        return countSetBits(bitmap) >= CONFIRM_THRESHOLD;
+        require(confirmed(bitmap), "onlyConfirmed");
+        require(bitmap & EXECUTED_FLAG == 0, "executed");
+        crossConfirms[sig] = bitmap | EXECUTED_FLAG;
     }
 
     function _crossTransfer(
@@ -340,10 +349,8 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     }
 
     function onCrossTransferExecute(bytes calldata data) external {
-        require(confirmed(data), "onlyConfirmed");
+        executeGuard(data); // safety check, if data is illegal, tx will revert
         uint256 crossId = abi.decode(data, (uint256));
-        require(existedIds[crossId] == CrossStatus.NONE, "cross completed!");
-        existedIds[crossId] = CrossStatus.COMPLETED; // mark as COMPLETED to prevent Reentrancy Attacks, because _onCrossTransferWithDataExecute will call external contract
         CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
         emit OnCrossTransfer(crossId);
     }

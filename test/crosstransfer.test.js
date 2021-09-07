@@ -247,7 +247,7 @@ describe("Cross Test", function () {
             const destAmount = await destChain.toNative(symbol, crossEvent.args.amount);
             const destFee = await destChain.toNative(symbol, crossEvent.args.fee);
 
-            expect(await afterDest.gateway.gateway.existedIds(crossId)).to.equal(2, "cross not completed");
+            //expect(await afterDest.gateway.gateway.existedIds(crossId)).to.equal(2, "cross not completed");
             if (casei.useFeeFlux) {
                 expect(crossEvent.args.fee).to.equal(0, "fee shoule be 0 if useFeeFlux");
                 const feeFlux = await srcChain.feeFlux(beforeSrc.vault.gateway, amount);
@@ -470,7 +470,7 @@ describe("Cross Test", function () {
 
             await expect(
                 destChain.onCrossTransferExecute(symbol, srcChain.polyId, crossData)
-            ).to.be.revertedWith("cross completed!");
+            ).to.be.revertedWith("executed");
         }
     });
 
@@ -535,7 +535,7 @@ describe("Cross Test", function () {
             const destAmount = await destChain.toNative(symbol, crossEvent.args.amount);
             const destFee = await destChain.toNative(symbol, crossEvent.args.fee);
 
-            expect(await afterDest.gateway.gateway.existedIds(crossId)).to.equal(2, "cross not completed");
+            //expect(await afterDest.gateway.gateway.existedIds(crossId)).to.equal(2, "cross not completed");
 
             if (casei.useFeeFlux) {
                 expect(crossEvent.args.fee).to.equal(0, "fee shoule be 0 if useFeeFlux");
@@ -560,7 +560,7 @@ describe("Cross Test", function () {
 
             await expect(
                 destChain.onCrossTransferExecute(symbol, srcChain.polyId, crossData)
-            ).to.be.revertedWith("cross completed!");
+            ).to.be.revertedWith("executed");
 
         }
     });

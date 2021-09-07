@@ -294,9 +294,9 @@ class Hotpot {
         const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
         const destGateway = destChain.gateways[srcChain.polyId][symbol];
         const confirms = await destGateway.crossConfirms(ethers.utils.keccak256(crossData));
-        if (confirms != 3) throw `crossConfirms wrong! ${confirms}`;
-        const status = await destGateway.existedIds(crossEvent.args.crossId);
-        if (status == 0) throw `existedIds wrong! ${status}`;
+        if (confirms.mask(254) != 3) throw `crossConfirms wrong! ${confirms.toHexString()}`;
+        //const status = await destGateway.existedIds(crossEvent.args.crossId);
+        //if (status == 0) throw `existedIds wrong! ${status}`;
         return [tx, tx2];
     }
     static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux, autoConfirm = false) {
@@ -315,9 +315,9 @@ class Hotpot {
         const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
         const destGateway = destChain.gateways[srcChain.polyId][symbol];
         const confirms = await destGateway.crossConfirms(ethers.utils.keccak256(crossData));
-        if (confirms != 3) throw `crossConfirms wrong! ${confirms}`;
-        const status = await destGateway.existedIds(crossEvent.args.crossId);
-        if (status == 0) throw `existedIds wrong! ${status}`;
+        if (confirms.mask(254) != 3) throw `crossConfirms wrong! ${confirms.toHexString()}`;
+        //const status = await destGateway.existedIds(crossEvent.args.crossId);
+        //if (status == 0) throw `existedIds wrong! ${status}`;
         return [tx, tx2];
     }
     static async CrossTransferWithData(srcChain, destChain, symbol, to, amount, useFeeFlux, data = Buffer.alloc(0), autoConfirm = false) {
@@ -337,9 +337,9 @@ class Hotpot {
         //console.log(Number(tx2.gasLimit), Number(await tx2.wait().then(r => r.gasUsed)));
         const destGateway = destChain.gateways[srcChain.polyId][symbol];
         const confirms = await destGateway.crossConfirms(ethers.utils.keccak256(crossData));
-        if (confirms != 3) throw `crossConfirms wrong! ${confirms}`;
-        const status = await destGateway.existedIds(crossEvent.args.crossId);
-        if (status == 0) throw `existedIds wrong! ${status}`;
+        if (confirms.mask(254) != 3) throw `crossConfirms wrong! ${confirms.toHexString()}`;
+        //const status = await destGateway.existedIds(crossEvent.args.crossId);
+        //if (status == 0) throw `existedIds wrong! ${status}`;
         return [tx, tx2];
     }
 
