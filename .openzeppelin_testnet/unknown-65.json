@@ -4206,6 +4206,14 @@
           }
         }
       }
+    },
+    "df06679a7a1a5d36aaeae565fe4799e7b2599aae415df764f7016bc56ae7ca4d": {
+      "address": "0x327F88DC079c64A3617BF7C796170782ac33F24b",
+      "txHash": "0xf25ef7444f5832c8ccce2f8191e5b5737453d15ef8d966bb879d52b769f57c0d",
+      "layout": {
+        "storage": [],
+        "types": {}
+      }
     }
   }
 }

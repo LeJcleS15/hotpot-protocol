@@ -3357,6 +3357,14 @@
           }
         }
       }
+    },
+    "df06679a7a1a5d36aaeae565fe4799e7b2599aae415df764f7016bc56ae7ca4d": {
+      "address": "0x8e92112cc5A26B4627F24aBa034d89008b0b7596",
+      "txHash": "0x12d83733daa7364dc8f25260e319ba55223bf984dcdfca4ea82c78b79bd909f9",
+      "layout": {
+        "storage": [],
+        "types": {}
+      }
     }
   }
 }

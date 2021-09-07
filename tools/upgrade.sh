@@ -18,6 +18,10 @@ upgradeConfig() {
     yarn tags upgradeConfig
 }
 
+upgradeLens() {
+    yarn tags upgradeLens
+}
+
 net() {
     if [ "$NETENV" == "MAINNET" ];then
         echo $1_main
@@ -28,7 +32,7 @@ net() {
 
 npx hardhat compile
 
-UPGRADE=upgradeConfig
+UPGRADE=upgradeLens
 
 NETWORK=`net ok` $UPGRADE
 NETWORK=`net heco` $UPGRADE
