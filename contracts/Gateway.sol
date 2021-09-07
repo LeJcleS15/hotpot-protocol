@@ -189,6 +189,7 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(confirmed(bitmap), "onlyConfirmed");
         require(bitmap & EXECUTED_FLAG == 0, "executed");
         crossConfirms[sig] = bitmap | EXECUTED_FLAG;
+        emit OnCrossTransfer(sig);
     }
 
     function _crossTransfer(
@@ -352,7 +353,6 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         executeGuard(data); // safety check, if data is illegal, tx will revert
         uint256 crossId = abi.decode(data, (uint256));
         CrossType(crossId >> CROSS_TYPE_OFFSET) == CrossType.TRANSFER_WITH_DATA ? _onCrossTransferWithDataExecute(data) : _onCrossTransferExecute(data);
-        emit OnCrossTransfer(crossId);
     }
 
     function _onCrossTransferByRole(

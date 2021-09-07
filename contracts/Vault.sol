@@ -116,7 +116,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         config.FLUX().safeTransfer(msg.sender, reward);
     }
 
-    function borrowToken(uint256 amount) private {
+    function _borrowToken(uint256 amount) private {
         ftoken.borrow(amount);
     }
 
@@ -144,7 +144,7 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         GateDebt storage debt = gateDebt[msg.sender];
         debt.debt = debt.debt.sub(int256(amount.add(fee)));
         uint256 cash = token.balanceOf(address(this));
-        if (cash < amount) borrowToken(amount - cash);
+        if (cash < amount) _borrowToken(amount - cash);
         token.safeTransfer(to, amount);
 
         uint256 totalShares = ERC20UpgradeSafe.totalSupply();
