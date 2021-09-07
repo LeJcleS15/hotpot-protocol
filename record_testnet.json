@@ -29,7 +29,7 @@
         },
         "HotpotLens": "0x9D3099a46E84ef5684Cfc26a2FCB38D5A501297F",
         "RouterV2": "0x9B2054C8Dc1E7b60C6F96ab020b20E61be666493",
-        "ExtCaller": "0xd96f1456A39a6dec0926a53F10CE5689BcaFcc7A"
+        "ExtCaller": "0x8A7C176558F3A52364D9AC2d8DcBD71c5a8DA9E3"
     },
     "97": {
         "__NAME__": "BSC",
@@ -61,7 +61,7 @@
         },
         "HotpotLens": "0xB1d1f3B3eEb7766383a6Ae8db64841e576A5531f",
         "RouterV2": "0x0Bc9CAeC0148e83946975852246c3355dF4615ff",
-        "ExtCaller": "0x4069C2995fa1f8cDa320522E4546845eEdFf5456"
+        "ExtCaller": "0x3B7Af59D1Ce1196143EE21b392970a5e80E8588C"
     },
     "256": {
         "__NAME__": "HECO",
@@ -93,6 +93,6 @@
         },
         "HotpotLens": "0x8A95Fb94C22c8B3DC55cC019874B45AEf7135791",
         "RouterV2": "0xD282DFEce86dcFF1a54Ca5fFD023Ec889729451A",
-        "ExtCaller": "0xe3250BE8299f6F5573C2Db5A60E41CB575C05F76"
+        "ExtCaller": "0xb29A414f3ac4dC3094e665df563B10E569a69f34"
     }
 }

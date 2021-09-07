@@ -28,11 +28,9 @@ net() {
     fi
 }
 
-#export NETENV=TESTNET
-export NETENV=MAINNET
 npx hardhat compile
 
-ACTION=deployRouterV2
+ACTION=deployExtCaller
 
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION

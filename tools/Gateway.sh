@@ -12,7 +12,6 @@ net() {
     fi
 }
 
-export NETENV=MAINNET
 npx hardhat compile
 
 ACTION=setFee

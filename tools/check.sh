@@ -5,7 +5,17 @@ status() {
     echo "--------------------"$NETENV $NETWORK
     yarn tags Check
 }
-export NETENV=TESTNET
-NETWORK=bsc_test status
-NETWORK=heco_test status
-NETWORK=ok_test status
+
+net() {
+    if [ "$NETENV" == "MAINNET" ];then
+        echo $1_main
+    else
+        echo $1_test
+    fi
+}
+
+ACTION=status
+
+NETWORK=`net ok` $ACTION
+NETWORK=`net heco` $ACTION
+NETWORK=`net bsc` $ACTION

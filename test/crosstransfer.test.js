@@ -229,15 +229,6 @@ describe("Cross Test", function () {
                 const callbackEvent = iface.parseLog(callbackLog);
                 expect(callbackEvent.args.data).to.equal(`0x${CROSS_DATA.toString('hex')}`, "cross data different!");
             }
-            {
-                const ExtCaller = await ethers.getContractFactory('ExtCaller');
-                const iface = ExtCaller.interface;
-                const CallExtSig = iface.getEventTopic('CallExt');
-                const receipt = await txOnTransfer.wait(0);
-                const CallExtLog = receipt.logs.find(log => log.topics[0] == CallExtSig);
-                const CallExtEvent = iface.parseLog(CallExtLog);
-                expect(CallExtEvent.args.success).to.equal(true, "cross call failed!");
-            }
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
             const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
 
@@ -516,15 +507,6 @@ describe("Cross Test", function () {
                 const callbackLog = receipt.logs.find(log => log.topics[0] == HotpotCallbackSig);
                 const callbackEvent = iface.parseLog(callbackLog);
                 expect(callbackEvent.args.data).to.equal(`0x${CROSS_DATA.toString('hex')}`, "cross data different!");
-            }
-            {
-                const ExtCaller = await ethers.getContractFactory('ExtCaller');
-                const iface = ExtCaller.interface;
-                const CallExtSig = iface.getEventTopic('CallExt');
-                const receipt = await txOnTransfer.wait(0);
-                const CallExtLog = receipt.logs.find(log => log.topics[0] == CallExtSig);
-                const CallExtEvent = iface.parseLog(CallExtLog);
-                expect(CallExtEvent.args.success).to.equal(true, "cross call failed!");
             }
             const afterSrc = await this.Status(srcChain, symbol, destChain.polyId);
             const afterDest = await this.Status(destChain, symbol, srcChain.polyId, to);
