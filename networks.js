@@ -1,6 +1,6 @@
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const fs = require('fs');
-const PRIKEY = fs.readFileSync(".secret").toString().trim();
+const PRIKEY = process.env.PRIKEY;//fs.readFileSync(".secret").toString().trim();
 module.exports = {
     heco_test: {
         provider: () => new HDWalletProvider(PRIKEY, "https://http-testnet.hecochain.com"),

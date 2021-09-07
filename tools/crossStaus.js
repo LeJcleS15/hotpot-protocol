@@ -3,17 +3,17 @@ const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 const Config = require('../artifacts/contracts/Config.sol/Config.json');
 
 
-const NETENV = 'mainnet';
+const NETENV = 'testnet';
 // NETENV: testnet,mainnet
 // net: heco,bsc,ok
 const Chains = [
     {
         net: 'heco', // 源链
-        tx: '0x3d9c5a5477f381ab1bcd03ea4d12431fce9b81cf38a074cd7713209b13351c00' // 发起hash
+        tx: '0x7890f519655be826bb5ddb5ecab267952964788fcfc75b98220ed9af3a3eb4a3' // 发起hash
     },
     {
         net: 'bsc',  // 目标链
-        tx: '0x58d1859c8f58b7d1ea6b09677ca51cda140ca610bc01d41f6a4176e1c53f8fe3' // 二次确认hash
+        tx: '0xd88b38dd5938552f613f661c0fae1518ad993f9a37c3488dd90abc1d435c937d' // 二次确认hash
     }
 ]
 
@@ -120,13 +120,8 @@ async function main() {
     //await gateway.methods.onCrossTransfer(destParams[0], destParams[1], destParams[2]).call({ from: ECCM });
 
     const confirms = await gateway.methods.crossConfirms(srcHash).call(); // 1 hotpot 2 poly 3:hotpot+poly
-    const status = await gateway.methods.existedIds(srcLogs.crossId).call();
-    const pendingLength = await gateway.methods.pendingLength().call();
-    console.log("confrim:", confirms.toString('hex'), "status:", status.toString(), "pending:", pendingLength.toString())
-    for (let i = 0; i < pendingLength; i++) {
-        const pendingi = await gateway.methods.pending(i).call();
-        console.log("pending", i, destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, pendingi));
-    }
+    console.log("confrim:", confirms.toString('hex'))
+
     //const tx = gateway.methods.dealPending(1);
     //await destChain.sendTx(tx);
 }
