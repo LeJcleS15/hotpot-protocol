@@ -15,7 +15,6 @@ net() {
     fi
 }
 
-export NETENV=MAINNET
 npx hardhat compile
 
 NETWORK=`net ok` Balancer
