@@ -92,8 +92,8 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
     IERC20 public token;
     uint256 public nextCrossId;
     uint256 public fee;
-    mapping(uint256 => CrossStatus) public existedIds; // deprecated
-    bytes[] public pending; // deprecated
+    mapping(uint256 => CrossStatus) private existedIds_deprecated; // deprecated, merged to crossConfirms
+    bytes[] private pending_deprecated; // deprecated
     mapping(bytes32 => uint256) public crossConfirms;
 
     uint8 public constant decimals = 18;
