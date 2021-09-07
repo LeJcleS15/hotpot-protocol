@@ -1,3 +1,4 @@
+const { ethers } = require('hardhat');
 
 Number.prototype.toAddress = function () {
     const hexStr = ethers.BigNumber.from(Number(this)).toHexString().slice(2);
@@ -190,9 +191,9 @@ class Hotpot {
         return vault.connect(account).withdraw(share);
     }
 
-    async dealPending(symbol, remotePolyId, count) {
+    async onCrossTransferExecute(symbol, remotePolyId, data) {
         const gateway = this.gateways[remotePolyId][symbol];
-        return gateway.dealPending(count);
+        return gateway.onCrossTransferExecute(data);
     }
 
     async harvestFlux(symbol, account) {
@@ -291,8 +292,11 @@ class Hotpot {
         const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
         const srcGateway = srcChain.gateways[destChain.polyId][symbol];
         const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
-        const status = await destChain.gateways[srcChain.polyId][symbol].existedIds(crossEvent.args.crossId);
-        if (status == 0) throw `comfirm wrong! ${status}`;
+        const destGateway = destChain.gateways[srcChain.polyId][symbol];
+        const confirms = await destGateway.crossConfirms(ethers.utils.keccak256(crossData));
+        if (confirms.mask(254) != 3) throw `crossConfirms wrong! ${confirms.toHexString()}`;
+        //const status = await destGateway.existedIds(crossEvent.args.crossId);
+        //if (status == 0) throw `existedIds wrong! ${status}`;
         return [tx, tx2];
     }
     static async CrossTransfer(srcChain, destChain, symbol, to, amount, useFeeFlux, autoConfirm = false) {
@@ -309,8 +313,11 @@ class Hotpot {
         const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256'], ['crossId', 'to', 'amount', 'fee', 'feeFlux'].map(key => crossEvent.args[key]));
         const srcGateway = srcChain.gateways[destChain.polyId][symbol];
         const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
-        const status = await destChain.gateways[srcChain.polyId][symbol].existedIds(crossEvent.args.crossId);
-        if (status == 0) throw `comfirm wrong! ${status}`;
+        const destGateway = destChain.gateways[srcChain.polyId][symbol];
+        const confirms = await destGateway.crossConfirms(ethers.utils.keccak256(crossData));
+        if (confirms.mask(254) != 3) throw `crossConfirms wrong! ${confirms.toHexString()}`;
+        //const status = await destGateway.existedIds(crossEvent.args.crossId);
+        //if (status == 0) throw `existedIds wrong! ${status}`;
         return [tx, tx2];
     }
     static async CrossTransferWithData(srcChain, destChain, symbol, to, amount, useFeeFlux, data = Buffer.alloc(0), autoConfirm = false) {
@@ -327,8 +334,12 @@ class Hotpot {
         const crossData = abi.encode(['uint256', 'address', 'uint256', 'uint256', 'int256', 'address', 'bytes'], ['crossId', 'to', 'amount', 'fee', 'feeFlux', 'from', 'extData'].map(key => crossEvent.args[key]));
         const srcGateway = srcChain.gateways[destChain.polyId][symbol];
         const tx2 = await destChain.onCrossTransferByHotpoter(symbol, crossData, srcGateway.address, srcChain.polyId);
-        const status = await destChain.gateways[srcChain.polyId][symbol].existedIds(crossEvent.args.crossId);
-        if (status == 0) throw `comfirm wrong! ${status}`;
+        //console.log(Number(tx2.gasLimit), Number(await tx2.wait().then(r => r.gasUsed)));
+        const destGateway = destChain.gateways[srcChain.polyId][symbol];
+        const confirms = await destGateway.crossConfirms(ethers.utils.keccak256(crossData));
+        if (confirms.mask(254) != 3) throw `crossConfirms wrong! ${confirms.toHexString()}`;
+        //const status = await destGateway.existedIds(crossEvent.args.crossId);
+        //if (status == 0) throw `existedIds wrong! ${status}`;
         return [tx, tx2];
     }
 

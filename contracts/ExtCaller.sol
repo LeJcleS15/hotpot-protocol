@@ -28,7 +28,6 @@ contract ExtCaller is IExtCaller {
         bytes calldata data
     ) external override onlyGateway {
         uint64 fromChainId = uint64(fromPolyId.toChainId());
-        (bool success, bytes memory retData) = address(toContract).call(abi.encodeWithSelector(IHotpotCallee.hotpotCallback.selector, fromChainId, from, token, amount, data));
-        emit CallExt(msg.sender, address(toContract), from, fromChainId, token, amount, data, success, retData);
+        toContract.hotpotCallback(fromChainId, from, token, amount, data);
     }
 }

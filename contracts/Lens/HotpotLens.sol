@@ -114,7 +114,7 @@ contract HotpotLens {
                 fee: gateway.fee(),
                 fluxPoint: 8000,
                 vault: address(temps.vault),
-                pendingLength: gateway.pendingLength(),
+                pendingLength: 0,
                 balance: debt,
                 vaultCash: temps.token.balanceOf(address(temps.vault)),
                 vaultBorrowLimit: getBorrowLimit(Vault(address(temps.vault))),
