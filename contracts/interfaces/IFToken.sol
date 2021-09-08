@@ -10,7 +10,7 @@ interface IFToken {
 
     function underlying() external view returns (address);
 
-    function borrow(uint256 amount) external returns (bool);
+    function borrow(uint256 amount) external;
 
     function borrowBalanceOf(address acct) external view returns (uint256);
 

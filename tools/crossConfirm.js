@@ -1,15 +1,16 @@
 const { EthWeb3 } = require('./ethWeb3');
 const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
+const Vault = require('../artifacts/contracts/Vault.sol/Vault.json');
 
 const NETENV = 'mainnet';
-const SYMBOL = 'USDT';
+const SYMBOL = 'DAI';
 const Chains = [
     {
-        net: 'ok',
-        tx: '0xe6065ff4844cbd26ba1fb0e014e5c73f4085fde8ec16e29d0bb794d72b28065c'
+        net: 'heco',
+        tx: '0xa7059c757f7435aa3be65f4df031c514ceac8e0a2b0a4bc54c51250898031b4f'
     },
     {
-        net: 'heco'
+        net: 'ok'
     }
 ]
 
@@ -19,6 +20,11 @@ const recordFile = `record_${NETENV}.json`;
 const chainConfig = require('../helps/chains');
 const records = require('../helps/record');
 
+const CrossTransferTopic = '0x34f724ddc8a8cef32aa7b72109150fe6f1e80cabdc83b19f90605a103d877a9e';
+const CrossTransferTypes = ['uint256', 'address', 'uint256', 'uint256', 'int256'];
+const CrossTransferWithDataTopic = '0xa9b6efdb260eb3884044ffa6b8d3fd27a0775f552c93586245268b1623b44af0';
+const CrossTransferWithDataTypes = ['uint256', 'address', 'uint256', 'uint256', 'int256', 'address', 'bytes'];
+const PolyTopic = '0x6ad3bf15c1988bc04bc153490cab16db8efb9a3990215bf1c64ea6e28be88483';
 
 async function newChain(name) {
     name = name.toLowerCase();
@@ -34,7 +40,7 @@ async function newChain(name) {
     return chain;
 }
 
-const PolyTopic = '0x6ad3bf15c1988bc04bc153490cab16db8efb9a3990215bf1c64ea6e28be88483';
+//const PolyTopic = '0x6ad3bf15c1988bc04bc153490cab16db8efb9a3990215bf1c64ea6e28be88483';
 
 const ContractAt = (chain, abi, address) => {
     const contract = chain.ContractAt(abi, address);
@@ -47,11 +53,39 @@ async function main() {
     const toIndex = 1;
     const srcChain = await newChain(Chains[fromIndex].net);
     const destChain = await newChain(Chains[toIndex].net);
-
     const fromReceipt = await srcChain.web3.eth.getTransactionReceipt(Chains[fromIndex].tx);
-    const PolyLog = fromReceipt.logs.find(log => log.topics[0] == PolyTopic);
-    console.log(PolyLog);
-    const srcInput = PolyLog.data.slice(-374, -54);
+
+    let srcData;
+    const CrossLog = fromReceipt.logs.find(log => [CrossTransferTopic, CrossTransferWithDataTopic].includes(log.topics[0]));
+    const isCrossData = Number(CrossLog.topics[1]) > 1e18;
+    let srcLogs;
+    if (isCrossData) {
+        const CrossTransferWithDataABI = Gateway.abi.find(item => item.type == 'event' && item.name == 'CrossTransferWithData').inputs;
+        srcLogs = srcChain.web3.eth.abi.decodeLog(CrossTransferWithDataABI, CrossLog.data, CrossLog.topics.slice(1));
+        // crossId, to, metaAmount, metaFee, _feeFlux, from, data
+        srcData = srcChain.web3.eth.abi.encodeParameters(CrossTransferWithDataTypes, [
+            srcLogs.crossId,
+            srcLogs.to,
+            srcLogs.amount,
+            srcLogs.fee,
+            srcLogs.feeFlux,
+            srcLogs.from,
+            srcLogs.extData,
+        ]);
+    }
+    else {
+        const CrossTransferABI = Gateway.abi.find(item => item.type == 'event' && item.name == 'CrossTransfer').inputs;
+        srcLogs = srcChain.web3.eth.abi.decodeLog(CrossTransferABI, CrossLog.data, CrossLog.topics.slice(1));
+        srcData = srcChain.web3.eth.abi.encodeParameters(CrossTransferTypes, [
+            srcLogs.crossId,
+            srcLogs.to,
+            srcLogs.amount,
+            srcLogs.fee,
+            srcLogs.feeFlux
+        ]);
+    }
+    srcInput = srcData.slice(2);
+
     const srcR = srcChain.web3.eth.abi.decodeParameters(['uint256', 'address', 'uint256', 'uint256', 'int256'], srcInput);
 
     const srcHash = srcChain.web3.utils.keccak256(`0x${srcInput}`);
@@ -66,14 +100,6 @@ async function main() {
 
     const confirms = await gateway.methods.crossConfirms(srcHash).call();
     console.log('confirms:', srcHash, confirms.toString());
-    const exist = await gateway.methods.existedIds(srcR[0]).call();
-    console.log('existStaus:', exist);
-    const pendingLength = await gateway.methods.pendingLength().call();
-    console.log('pendingLength:', pendingLength.toString())
-    for (let i = 0; i < pendingLength; i++) {
-        const pendingi = await gateway.methods.pending(i).call();
-        console.log(pendingi);
-    }
 
     const srcGateway = srcChain.record._path(['Gateways', destChain.polyId, SYMBOL]);
     console.log('srcGateway:', srcGateway);
@@ -83,6 +109,12 @@ async function main() {
         //const r = await gateway.eweb3.sendTx(tx);
         //console.log('second confirm:', r);
     }
+
+    const vaultAddress = destChain.record._path(['Vaults', SYMBOL]);
+    const vault = ContractAt(destChain, Vault.abi, vaultAddress);
+    console.log("vault:", await gateway.methods.vault().call(), vaultAddress);
+    console.log("ftoken:", await vault.methods.ftoken().call());
+    r = await gateway.methods.onCrossTransferExecute(`0x${srcInput}`).call();
 
 }
 
