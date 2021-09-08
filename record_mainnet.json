@@ -28,8 +28,8 @@
             }
         },
         "HotpotLens": "0x35b161F6F1Aa5787045505bd2E8307195485725D",
-        "RouterV2": "0xb541A49E2bF43FF25D9110C3F9b8c55D41306710",
-        "ExtCaller": "0x47ba433d603700CD45315272AacDb7610C87C609"
+        "RouterV2": "0x1A94fDC49FE65BfB40540FC8Cedda24F82066E05",
+        "ExtCaller": "0x31c04011CC1624BcD3305EC57C2f1Be1a5c8dAFC"
     },
     "66": {
         "__NAME__": "OK",
@@ -60,8 +60,8 @@
             }
         },
         "HotpotLens": "0x487Fd5C13f5764b798D4AecaEA79B2e0DF5d3952",
-        "RouterV2": "0x40B8b417c678A02F5118d9587F6fd6D82b13AA67",
-        "ExtCaller": "0x39676641549f70153193D7315d55F02c2edf3548"
+        "RouterV2": "0xa0C593894dd3F37aCB67278125B0aF316Ad7c614",
+        "ExtCaller": "0x59a0a316B84917C876caea847b93E6799fA3f9A3"
     },
     "128": {
         "__NAME__": "HECO",
@@ -92,7 +92,7 @@
             }
         },
         "HotpotLens": "0xfb5A070641EF57459D9dA9f5d7a03DF37726C9a6",
-        "RouterV2": "0x1dB7602713Cb79Ce44794E8ecD924701Efe7a926",
-        "ExtCaller": "0xC8dFdFB9ca9D8759a30CA961898f0c35c70a8A52"
+        "RouterV2": "0xC3AAB371175b7cD13F664107568c87DceCC9b848",
+        "ExtCaller": "0x37ba3fdEBC15cbc5379CD6807c40e114F407B36c"
     }
 }

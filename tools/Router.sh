@@ -22,7 +22,7 @@ net() {
 
 npx hardhat compile
 
-ACTION=withdrawNativeFee
+ACTION=Paused
 
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION

@@ -73,14 +73,8 @@ module.exports = async function (hre) {
     for (let j = 0; j < symbols.length; j++) {
       const symbol = symbols[j];
       const gateway = gateways[symbol];
-      //if (symbol != 'DAI' || chainName != 'BSC') continue;
       console.log('token:', symbol, gateway, await implCheck(gateway));
-      const oldC = await ContractAt(Contract, gateway)
-      const pendingLength = await oldC.pendingLength();
-      if (pendingLength > 0) {
-        console.log("skip pending:", pendingLength.toString());
-        continue;
-      }
+      const oldC = await ContractAt('GatewayOld', gateway)
       const newC = await upgradeProxy(gateway, Contract);
     }
   }

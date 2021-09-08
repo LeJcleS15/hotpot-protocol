@@ -40,10 +40,13 @@ const func = async function (hre) {
 
     const chains = ChainsData(hre.Chains);
 
+    console.log("Router at RouterV2", Deployed.RouterV2)
     const routerV2 = await ContractAt('Router', Deployed.RouterV2);
-    const router = await ContractAt('Router', Deployed.Router);
+    //const router = await ContractAt('Router', Deployed.Router);
 
+    console.log("RouterV2 unpause,", await routerV2.owner())
     await routerV2.unpause();
+    //await routerV2.pause();
 };
 
 module.exports = func;
