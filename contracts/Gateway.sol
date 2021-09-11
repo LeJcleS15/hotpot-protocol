@@ -244,9 +244,11 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(config.isBalancer(from), "onlyBalancer");
         vault.depositFund(from, uint256(amount), fluxAmount);
         //_dealPending(pending.length);
+        /*
         (int256 debt, int256 debtFlux) = vault.gateDebt(address(this));
         require(amount == 0 || debt <= 0, "invalid amount");
         require(fluxAmount == 0 || debtFlux <= 0, "invalid amount");
+        */
         _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
     }
 
