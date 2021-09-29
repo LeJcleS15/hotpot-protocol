@@ -16,6 +16,7 @@ async function deployProxyMulti(Contract, inputs, path) {
 }
 
 function ContractAt(Contract, address) {
+    console.log('ContractAt:', Contract, address);
     return ethers.getSigners().then(
         account => ethers.getContractAt(
             Contract,
@@ -57,9 +58,13 @@ const func = async function (hre) {
                 Config.address,
                 vault
             ];
+            console.log(`depoy Gateway-${symbol}-${chains._polyToName(toPolyId)}...`)
             const Gateway = await deployProxyMulti('Gateway', args, ['Gateways', toPolyId, symbol]);
-            console.log(`Gateway-${symbol}-${toPolyId}`, Gateway.address)
-            await Config.bindVault(vault, Gateway.address);
+            console.log(`Gateway-${symbol}-${chains._polyToName(toPolyId)}: ${Gateway.address}`)
+            if (vault != await Config.boundVault(Gateway.address)) {
+                console.log('bindVault:', vault, Gateway.address);
+                await Config.bindVault(vault, Gateway.address);
+            }
         }
     }
 };

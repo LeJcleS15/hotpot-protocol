@@ -32,10 +32,17 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
 
-    const balancer = deployAcc; //'0x6F431c9039216DCc5E65c00BCC7FD1C8e1048440';
+    const balancer = '0x6F431c9039216DCc5E65c00BCC7FD1C8e1048440';
     const Access = await ContractAt('Access', Deployed.Access);
-    //await Access.setBalancer(balancer, true);
-    await Access.setHotpoter(balancer, true);
+    if (!await Access.isBalancer(balancer)) {
+        console.log('setBalancer:', balancer)
+        await Access.setBalancer(balancer, true);
+    }
+    if (!await Access.isHotpoter(balancer)) {
+        console.log('setHotpoter:', balancer)
+        await Access.setHotpoter(balancer, true);
+    }
+    console.log('isBalancer:', await Access.isBalancer(balancer));
     console.log('isHotpoter:', await Access.isHotpoter(balancer));
 };
 

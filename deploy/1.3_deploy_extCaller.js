@@ -11,6 +11,7 @@ Number.prototype.toAddress = function () {
 String.prototype.toAddress = Number.prototype.toAddress;
 
 function ContractAt(Contract, address) {
+    console.log('ContractAt:', Contract, address);
     return ethers.getSigners().then(
         account => ethers.getContractAt(
             Contract,
@@ -36,6 +37,9 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     const testnet = hre.network.name.endsWith('_test');
     const Contract = testnet ? 'ExtCallerTestnet' : 'ExtCaller';
+    const path = ['RouterV2'];
+    const deployed = record(hre.Record)._path(path);
+    if (deployed) return;
     await deploy(Contract, {
         from: deployAcc,
         args: [Deployed.Config],

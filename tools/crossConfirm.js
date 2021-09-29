@@ -3,14 +3,15 @@ const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 const Vault = require('../artifacts/contracts/Vault.sol/Vault.json');
 
 const NETENV = 'mainnet';
-const SYMBOL = 'DAI';
+//BSC->HECO:DAI
+const SYMBOL = 'USDC';
 const Chains = [
     {
-        net: 'heco',
-        tx: '0xa7059c757f7435aa3be65f4df031c514ceac8e0a2b0a4bc54c51250898031b4f'
+        net: 'bsc',
+        tx: '0x0e1d315282a9eb59ded7c583743bffff98b3d1195aa2962903af3975cbf13019'
     },
     {
-        net: 'ok'
+        net: 'heco'
     }
 ]
 
@@ -106,16 +107,16 @@ async function main() {
     if (confirms == 1) {
         console.log('need confirm')
         const tx = await gateway.methods.onCrossTransferByHotpoter(`0x${srcInput}`, srcGateway, srcChain.polyId);
-        //const r = await gateway.eweb3.sendTx(tx);
+        const r = await gateway.eweb3.sendTx(tx, { gas: 1000000 });
         //console.log('second confirm:', r);
     }
-
-    const vaultAddress = destChain.record._path(['Vaults', SYMBOL]);
-    const vault = ContractAt(destChain, Vault.abi, vaultAddress);
-    console.log("vault:", await gateway.methods.vault().call(), vaultAddress);
-    console.log("ftoken:", await vault.methods.ftoken().call());
-    r = await gateway.methods.onCrossTransferExecute(`0x${srcInput}`).call();
-
+    /*
+        const vaultAddress = destChain.record._path(['Vaults', SYMBOL]);
+        const vault = ContractAt(destChain, Vault.abi, vaultAddress);
+        console.log("vault:", await gateway.methods.vault().call(), vaultAddress);
+        console.log("ftoken:", await vault.methods.ftoken().call());
+        r = await gateway.methods.onCrossTransferExecute(`0x${srcInput}`).call();
+    */
 }
 
 main();

@@ -3,6 +3,7 @@ deploy() {
     yarn tags Access
     yarn tags Router
     yarn tags Config
+    yarn tags ExtCaller
     yarn tags Vaults
     yarn tags Gateways
     yarn tags Lens
@@ -30,11 +31,11 @@ net() {
 
 npx hardhat compile
 
-ACTION=deployExtCaller
+ACTION=bind
 
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION
 NETWORK=`net bsc` $ACTION
-
+NETWORK=`net polygon` $ACTION
 
 

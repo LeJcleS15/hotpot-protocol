@@ -22,8 +22,9 @@ net() {
 
 npx hardhat compile
 
-ACTION=Paused
+ACTION=setGas
 
+NETWORK=`net polygon` $ACTION
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION
 NETWORK=`net bsc` $ACTION

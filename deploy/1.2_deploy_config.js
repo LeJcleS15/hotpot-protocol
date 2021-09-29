@@ -6,6 +6,9 @@ const { ethers, upgrades } = hre;
 const _ = undefined;
 
 async function deployProxy(Contract, inputs) {
+  const path = [Contract]
+  const deployed = record(hre.Record)._path(path);
+  if (deployed && !process.argv.includes('--reset')) return ContractAt(Contract, deployed);
   const factory = (await ethers.getContractFactory(
     Contract,
     (await ethers.getSigners())[0]
@@ -13,11 +16,12 @@ async function deployProxy(Contract, inputs) {
   const proxyed = await upgrades.deployProxy(factory, inputs);
   await proxyed.deployed();
   console.log(`>> Deployed ${Contract} at ${proxyed.address}`);
-  record(hre.Record, [Contract], proxyed.address, hre.chainId);
+  record(hre.Record, path, proxyed.address, hre.chainId);
   return proxyed;
 }
 
 function ContractAt(Contract, address) {
+  console.log('ContractAt:', Contract, address);
   return ethers.getSigners().then(
     account => ethers.getContractAt(
       Contract,
@@ -36,7 +40,7 @@ const func = async function (hre) {
 
   const Deployed = record(hre.Record);
   const access = Deployed.Access;
-  const router = Deployed.Router;
+  const router = Deployed.RouterV2;
 
   const chains = ChainsData(hre.Chains);
   //const tokens = ChainsData(hre.Tokens);

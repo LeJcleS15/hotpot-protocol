@@ -29,8 +29,8 @@ function networks(network, suffix, prikey) {
     const chain = `${key}_${suffix}`;
     const net = network[key];
     nets[chain] = {
-      url: net.url,
-      accounts: prikey ? [prikey] : undefined
+      ...net,
+      accounts: prikey ? [prikey] : undefined,
     }
   }
   return nets;

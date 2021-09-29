@@ -134,6 +134,36 @@
       "address": "0x487Fd5C13f5764b798D4AecaEA79B2e0DF5d3952",
       "txHash": "0x7b7089f1e09975d09308be736f76dd8341c9d2a3b01b71237e232b5302b05263",
       "kind": "transparent"
+    },
+    {
+      "address": "0xfC321C3a2b06002080292145B88d9735F4156250",
+      "txHash": "0xc06a6aa3bcc9c3d8a90d0ec4a3c142f59b1072194f281048fc7696cb2dff85f7",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xf195EeC267130FFF260b107a26b94976f59e09e2",
+      "txHash": "0xe5eef9161a7557bcf98b5bafd3443b895c759e13f10b8f506f071656a11aa72b",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x353881c2afda8D07Db6c01f59D91Bef75570d4D2",
+      "txHash": "0x5e7b73c0ec0aa799e62acf385ad28a673527911542ad3580a22c8e3b83abccd7",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xA86E17e1B40F251d50Ce64Da1f2F824Ff9520E44",
+      "txHash": "0x260f60569cc4541b83646b8d9f547fed071970cf9f01a713c9563b82a1362ecf",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xE5bbC1FaF1dD83251B2949c08dE53Ba86BFf4Fb8",
+      "txHash": "0x9571135fd749c81aa34442c79a9e9da904d84711614ac5ce7337b357d0b0dfa0",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x5CB3Ff30Ae417fddC9301b64C35A211f40f801C2",
+      "txHash": "0x0359fd64c6818a0efbb1cfb9684b813d0a2d39da8f7937a68d94e433b7cfbc6b",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -3142,6 +3172,111 @@
           },
           "t_bytes32": {
             "label": "bytes32"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]"
+          },
+          "t_bool": {
+            "label": "bool"
+          }
+        }
+      }
+    },
+    "577fd76c0d7a2a1c5af8bf7a48a43a82b71c67ac04f5f37a9f27eb3f9bbae25f": {
+      "address": "0x08a6A787b09829B094Ce81347f0c2150Fa0BaF31",
+      "txHash": "0xf31bffbac311b51db54afe8b4589efc98d8f93b74daa15491d224322de8087d3",
+      "layout": {
+        "storage": [
+          {
+            "contract": "Initializable",
+            "label": "initialized",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol:21"
+          },
+          {
+            "contract": "Initializable",
+            "label": "initializing",
+            "type": "t_bool",
+            "src": "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol:26"
+          },
+          {
+            "contract": "Initializable",
+            "label": "______gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol:61"
+          },
+          {
+            "contract": "ContextUpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)50_storage",
+            "src": "@openzeppelin/contracts-ethereum-package/contracts/GSN/Context.sol:37"
+          },
+          {
+            "contract": "AccessControlUpgradeSafe",
+            "label": "_roles",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)159_storage)",
+            "src": "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol:58"
+          },
+          {
+            "contract": "AccessControlUpgradeSafe",
+            "label": "__gap",
+            "type": "t_array(t_uint256)49_storage",
+            "src": "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol:210"
+          }
+        ],
+        "types": {
+          "t_mapping(t_bytes32,t_struct(RoleData)159_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeSafe.RoleData)"
+          },
+          "t_bytes32": {
+            "label": "bytes32"
+          },
+          "t_struct(RoleData)159_storage": {
+            "label": "struct AccessControlUpgradeSafe.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_struct(AddressSet)2082_storage"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32"
+              }
+            ]
+          },
+          "t_struct(AddressSet)2082_storage": {
+            "label": "struct EnumerableSet.AddressSet",
+            "members": [
+              {
+                "label": "_inner",
+                "type": "t_struct(Set)1902_storage"
+              }
+            ]
+          },
+          "t_struct(Set)1902_storage": {
+            "label": "struct EnumerableSet.Set",
+            "members": [
+              {
+                "label": "_values",
+                "type": "t_array(t_bytes32)dyn_storage"
+              },
+              {
+                "label": "_indexes",
+                "type": "t_mapping(t_bytes32,t_uint256)"
+              }
+            ]
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)"
+          },
+          "t_uint256": {
+            "label": "uint256"
           },
           "t_array(t_uint256)49_storage": {
             "label": "uint256[49]"

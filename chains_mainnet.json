@@ -85,5 +85,34 @@
                 "ftoken": "0xd4a16acCC595D958074283a592A924B08377beE9"
             }
         }
+    },
+    "POLYGON": {
+        "polyId": 17,
+        "chainId": 137,
+        "PolyCCMP": "0x5366ea2b5b729ff3cef404c2408c8c60cc061b71",
+        "Oracle": "0xC6CAA7793D4F4A95fB7A7177a2b7885C23ec12eb",
+        "FLUX": "0xd10852DF03Ea8b8Af0CC0B09cAc3f7dbB15e0433",
+        "TOKENS": {
+            "USDT": {
+                "token": "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
+                "ftoken": "0xeFB1f48A1a367A509Ecef1578E5004d4013fc7A6"
+            },
+            "USDC": {
+                "token": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+                "ftoken": "0x831b0AfAA3B22e1435169c7585CCC1861A2C9cbC"
+            },
+            "DAI": {
+                "token": "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063",
+                "ftoken": "0xbCaD63dcfcF65D9eaDD99E344e327E65432f222E"
+            },
+            "BTC": {
+                "token": "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6",
+                "ftoken": "0x57CF28ee005c2980c2ce5468bb8C52E401C786f3"
+            },
+            "ETH": {
+                "token": "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619",
+                "ftoken": "0xAb087D84cd75c31Ace78EC025ADFF21954a9A8a2"
+            }
+        }
     }
 }
