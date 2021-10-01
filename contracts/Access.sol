@@ -6,9 +6,9 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.
 import {IAccess} from "./interfaces/IAccess.sol";
 
 contract Access is AccessControlUpgradeSafe, IAccess {
-    bytes32 public constant BALANCER_ROLE = keccak256("BALANCER_ROLE");
-    bytes32 public constant HOTPOTER_ROLE = keccak256("HOTPOTER_ROLE");
-    bytes32 public constant COMPROMISER_ROLE = keccak256("COMPROMISER_ROLE");
+    bytes32 public constant BALANCER_ROLE = keccak256("BALANCER_ROLE"); // 垫资调仓账户
+    bytes32 public constant HOTPOTER_ROLE = keccak256("HOTPOTER_ROLE"); // 二次确认
+    bytes32 public constant COMPROMISER_ROLE = keccak256("COMPROMISER_ROLE"); // 中心化调仓
 
     function initialize() external initializer {
         __AccessControl_init_unchained();
