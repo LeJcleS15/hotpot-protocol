@@ -34,6 +34,7 @@ npx hardhat compile
 
 UPGRADE=upgradeGateways
 
-#NETWORK=`net ok` $UPGRADE
+#NETWORK=`net polygon` $UPGRADE
+NETWORK=`net ok` $UPGRADE
 NETWORK=`net heco` $UPGRADE
 NETWORK=`net bsc` $UPGRADE
