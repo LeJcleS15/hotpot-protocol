@@ -118,6 +118,10 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(config.isHotpoter(msg.sender), "onlyHotpoter");
         _;
     }
+    modifier onlyCompromiser() {
+        require(config.isCompromiser(msg.sender), "onlyCompromiser");
+        _;
+    }
 
     function initialize(IConfig _config, IVault _vault) external initializer {
         OwnableUpgradeSafe.__Ownable_init();
@@ -250,6 +254,17 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         require(fluxAmount == 0 || debtFlux <= 0, "invalid amount");
         */
         _crossTransfer(from, to, amount, 0, -int256(fluxAmount));
+    }
+
+    /// @dev get token from vault to rebalance via off-chain
+    function rebalanceWithdraw(uint256 amount) external onlyCompromiser {
+        require(token.balanceOf(address(vault)) >= amount, "cash insufficient");
+        vault.withdrawFund(msg.sender, amount, 0, 0);
+    }
+
+    /// @dev deposit token to vault to complete off-chain rebalance
+    function rebalanceDeposit(uint256 amount) external {
+        vault.depositFund(msg.sender, amount, 0);
     }
 
     function _crossTransferFrom(

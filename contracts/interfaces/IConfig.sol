@@ -15,6 +15,8 @@ interface IConfig {
 
     function feeFlux(address token, uint256 amount) external view returns (uint256);
 
+    function isCompromiser(address compromiser) external view returns (bool);
+
     function isBalancer(address balancer) external view returns (bool);
 
     function isHotpoter(address hotpoter) external view returns (bool);
