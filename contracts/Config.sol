@@ -46,6 +46,10 @@ contract Config is OwnableUpgradeSafe, IConfig {
         return _router == router;
     }
 
+    function isCompromiser(address compromiser) external view override returns (bool) {
+        return access.isCompromiser(compromiser);
+    }
+
     function isBalancer(address balancer) external view override returns (bool) {
         return access.isBalancer(balancer);
     }
