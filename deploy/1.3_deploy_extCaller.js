@@ -37,7 +37,7 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     const testnet = hre.network.name.endsWith('_test');
     const Contract = testnet ? 'ExtCallerTestnet' : 'ExtCaller';
-    const path = ['RouterV2'];
+    const path = [Contract];
     const deployed = record(hre.Record)._path(path);
     if (deployed) return;
     await deploy(Contract, {

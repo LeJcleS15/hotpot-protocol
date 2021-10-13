@@ -55,8 +55,7 @@ module.exports = async function (hre) {
     const oldC = await ContractAt(Contract, Config)
     const newC = await upgradeProxy(Config, Contract);
     //await oldC.setRouter(Deployed.RouterV2);
-    //console.log("CHAINID:", Number(await oldC.getChainID()))
-    console.log(await oldC.isRouter(Deployed.Router), await oldC.isRouter(Deployed.RouterV2), await oldC.oracle())
+    console.log(await oldC.isRouter(Deployed.RouterV2), await oldC.oracle())
     console.log(Deployed.ExtCaller, await oldC.extCaller())
   }
 }

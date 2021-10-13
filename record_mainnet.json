@@ -151,6 +151,7 @@
                 "ETH": "0x32cAf282bdb48147C157285E0eb715fbFa07826a"
             }
         },
-        "HotpotLens": "0x8649588e71d0eb8b1cF73c7E81E3DFc7dBE06190"
+        "HotpotLens": "0x8649588e71d0eb8b1cF73c7E81E3DFc7dBE06190",
+        "ExtCaller": "0xd0Ff13b775AdabF811D5cB3feF62222b85f7c08e"
     }
 }

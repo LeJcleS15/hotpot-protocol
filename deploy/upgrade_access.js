@@ -49,14 +49,12 @@ module.exports = async function (hre) {
 
   const Deployed = record(hre.Record);
   const oldAddress = ContractKey.reduce((r, key) => r[key], Deployed);
-  const vaults = [oldAddress];
-  console.log(vaults)
-  for (let i = 0; i < vaults.length; i++) {
-    const vault = vaults[i];
-    const oldC = await ContractAt(Contract, vault)
-    const newC = await upgradeProxy(vault, Contract);
-    //await newC.fix(Deployed.Config);
-    //console.log(i, await oldC.config())
+  const accesses = [oldAddress];
+  console.log(accesses)
+  for (let i = 0; i < accesses.length; i++) {
+    const access = accesses[i];
+    const oldC = await ContractAt(Contract, access)
+    const newC = await upgradeProxy(access, Contract);
   }
 }
 module.exports.tags = ["upgradeAccess"];

@@ -31,11 +31,11 @@ net() {
 
 npx hardhat compile
 
-ACTION=bind
+ACTION=deployExtCaller
 
-NETWORK=`net ok` $ACTION
-NETWORK=`net heco` $ACTION
-NETWORK=`net bsc` $ACTION
+#NETWORK=`net ok` $ACTION
+#NETWORK=`net heco` $ACTION
+#NETWORK=`net bsc` $ACTION
 NETWORK=`net polygon` $ACTION
 
 

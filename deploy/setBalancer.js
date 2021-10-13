@@ -34,7 +34,7 @@ const func = async function (hre) {
 
     const balancer = '0x99d29a9fb9493cf9e1bb99c556b87f7d495c2152';
     const hotpoter = balancer;
-    const compromiser = '0x383d66BbE5864653953c4E4121AB8b7531E75E04';
+    const compromiser = balancer;//'0x383d66BbE5864653953c4E4121AB8b7531E75E04';
     const Access = await ContractAt('Access', Deployed.Access);
     if (!await Access.isBalancer(balancer)) {
         console.log('setBalancer:', balancer)
