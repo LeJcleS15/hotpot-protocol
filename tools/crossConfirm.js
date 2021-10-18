@@ -1,17 +1,20 @@
 const { EthWeb3 } = require('./ethWeb3');
+const Web3 = require('web3');
 const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 const Vault = require('../artifacts/contracts/Vault.sol/Vault.json');
 
+const bn = n => new Web3.utils.BN(n);
+
 const NETENV = 'mainnet';
 //BSC->HECO:DAI
-const SYMBOL = 'USDC';
+const SYMBOL = 'USDT';
 const Chains = [
     {
         net: 'bsc',
-        tx: '0x0e1d315282a9eb59ded7c583743bffff98b3d1195aa2962903af3975cbf13019'
+        tx: '0x78c5b3fbc23d0912550286ca8cb8d0c1b7690f7d1b7f84a78e8bfd279f9347ac'
     },
     {
-        net: 'heco'
+        net: 'ok'
     }
 ]
 
@@ -99,15 +102,15 @@ async function main() {
 
     const gateway = ContractAt(destChain, Gateway.abi, destGatewayAddress);
 
-    const confirms = await gateway.methods.crossConfirms(srcHash).call();
-    console.log('confirms:', srcHash, confirms.toString());
+    const confirms = bn(await gateway.methods.crossConfirms(srcHash).call());
+    console.log('confirms:', srcHash, confirms.toString(16));
 
     const srcGateway = srcChain.record._path(['Gateways', destChain.polyId, SYMBOL]);
     console.log('srcGateway:', srcGateway);
     if (confirms == 1) {
         console.log('need confirm')
         const tx = await gateway.methods.onCrossTransferByHotpoter(`0x${srcInput}`, srcGateway, srcChain.polyId);
-        const r = await gateway.eweb3.sendTx(tx, { gas: 1000000 });
+        //const r = await gateway.eweb3.sendTx(tx, { gas: 1000000 });
         //console.log('second confirm:', r);
     }
     /*

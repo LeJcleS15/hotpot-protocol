@@ -33,9 +33,9 @@ npx hardhat compile
 
 ACTION=deployExtCaller
 
-#NETWORK=`net ok` $ACTION
-#NETWORK=`net heco` $ACTION
-#NETWORK=`net bsc` $ACTION
+NETWORK=`net ok` $ACTION
+NETWORK=`net heco` $ACTION
+NETWORK=`net bsc` $ACTION
 NETWORK=`net polygon` $ACTION
 
 

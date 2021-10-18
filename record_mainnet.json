@@ -36,7 +36,7 @@
         },
         "HotpotLens": "0x35b161F6F1Aa5787045505bd2E8307195485725D",
         "RouterV2": "0x1A94fDC49FE65BfB40540FC8Cedda24F82066E05",
-        "ExtCaller": "0x31c04011CC1624BcD3305EC57C2f1Be1a5c8dAFC"
+        "ExtCaller": "0xa601fA299ED809461BEFc1b3bE03E527Ead4A6Dd"
     },
     "66": {
         "__NAME__": "OK",
@@ -75,7 +75,7 @@
         },
         "HotpotLens": "0x487Fd5C13f5764b798D4AecaEA79B2e0DF5d3952",
         "RouterV2": "0xa0C593894dd3F37aCB67278125B0aF316Ad7c614",
-        "ExtCaller": "0x59a0a316B84917C876caea847b93E6799fA3f9A3"
+        "ExtCaller": "0x7E5c3A5C03Effb37D214541Ce1174E06D31794c0"
     },
     "128": {
         "__NAME__": "HECO",
@@ -114,7 +114,7 @@
         },
         "HotpotLens": "0xfb5A070641EF57459D9dA9f5d7a03DF37726C9a6",
         "RouterV2": "0xC3AAB371175b7cD13F664107568c87DceCC9b848",
-        "ExtCaller": "0x37ba3fdEBC15cbc5379CD6807c40e114F407B36c"
+        "ExtCaller": "0xdA6EcBF67F8Ec83dD2a74C28702713586E0B35aF"
     },
     "137": {
         "__NAME__": "POLYGON",
@@ -152,6 +152,6 @@
             }
         },
         "HotpotLens": "0x8649588e71d0eb8b1cF73c7E81E3DFc7dBE06190",
-        "ExtCaller": "0xd0Ff13b775AdabF811D5cB3feF62222b85f7c08e"
+        "ExtCaller": "0xb541A49E2bF43FF25D9110C3F9b8c55D41306710"
     }
 }
