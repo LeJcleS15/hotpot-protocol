@@ -10,11 +10,11 @@ const NETENV = 'mainnet';
 const SYMBOL = 'USDT';
 const Chains = [
     {
-        net: 'bsc',
-        tx: '0x78c5b3fbc23d0912550286ca8cb8d0c1b7690f7d1b7f84a78e8bfd279f9347ac'
+        net: 'heco',
+        tx: '0x18daf3eedabaae5aeecf340a92ef14a7dd3dc2c03360d6670729ab7dd6d2dd14'
     },
     {
-        net: 'ok'
+        net: 'polygon'
     }
 ]
 
@@ -36,6 +36,7 @@ async function newChain(name) {
     const network = networks[name];
     const chain = new EthWeb3(network.url);
     const chainId = await chain.web3.eth.getChainId();
+    console.log("chaihnId:", chainId)
     chain.config = chainConfig(chainFile, chainId);
     chain.record = records(recordFile, undefined, undefined, chainId);
     chain.chainId = chainId;
@@ -63,6 +64,7 @@ async function main() {
     const CrossLog = fromReceipt.logs.find(log => [CrossTransferTopic, CrossTransferWithDataTopic].includes(log.topics[0]));
     const isCrossData = Number(CrossLog.topics[1]) > 1e18;
     let srcLogs;
+    console.log('isCrossData:', isCrossData)
     if (isCrossData) {
         const CrossTransferWithDataABI = Gateway.abi.find(item => item.type == 'event' && item.name == 'CrossTransferWithData').inputs;
         srcLogs = srcChain.web3.eth.abi.decodeLog(CrossTransferWithDataABI, CrossLog.data, CrossLog.topics.slice(1));
@@ -90,7 +92,9 @@ async function main() {
     }
     srcInput = srcData.slice(2);
 
-    const srcR = srcChain.web3.eth.abi.decodeParameters(['uint256', 'address', 'uint256', 'uint256', 'int256'], srcInput);
+    const srcR = isCrossData ?
+        srcChain.web3.eth.abi.decodeParameters(['uint256', 'address', 'uint256', 'uint256', 'int256', 'address', 'bytes'], srcInput)
+        : srcChain.web3.eth.abi.decodeParameters(['uint256', 'address', 'uint256', 'uint256', 'int256'], srcInput);
 
     const srcHash = srcChain.web3.utils.keccak256(`0x${srcInput}`);
     console.log('----Src: ', srcHash);
@@ -107,9 +111,13 @@ async function main() {
 
     const srcGateway = srcChain.record._path(['Gateways', destChain.polyId, SYMBOL]);
     console.log('srcGateway:', srcGateway);
-    if (confirms == 1) {
+    if (true || confirms == 1) {
         console.log('need confirm')
-        const tx = await gateway.methods.onCrossTransferByHotpoter(`0x${srcInput}`, srcGateway, srcChain.polyId);
+        const CONFIRM_THRESHOLD = await gateway.methods.CONFIRM_THRESHOLD().call();
+        console.log('CONFIRM_THRESHOLD:', CONFIRM_THRESHOLD);
+        const r = await gateway.methods.onCrossTransferExecute(`0x${srcInput}`).call();
+        console.log(r)
+        //const tx = await gateway.methods.onCrossTransferByHotpoter(`0x${srcInput}`, srcGateway, srcChain.polyId);
         //const r = await gateway.eweb3.sendTx(tx, { gas: 1000000 });
         //console.log('second confirm:', r);
     }

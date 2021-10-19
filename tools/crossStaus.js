@@ -2,18 +2,20 @@ const { EthWeb3 } = require('./ethWeb3');
 const Gateway = require('../artifacts/contracts/Gateway.sol/Gateway.json');
 const Config = require('../artifacts/contracts/Config.sol/Config.json');
 
+const Web3 = require('web3');
+const bn = n => new Web3.utils.BN(n);
 
-const NETENV = 'testnet';
+const NETENV = 'mainnet';
 // NETENV: testnet,mainnet
 // net: heco,bsc,ok
 const Chains = [
     {
-        net: 'heco', // 源链
-        tx: '0x7890f519655be826bb5ddb5ecab267952964788fcfc75b98220ed9af3a3eb4a3' // 发起hash
+        net: 'bsc', // 源链
+        tx: '0xd7c5d7ca28b274b7e53ddd860336feab79dacf9b05b5c49e957371fd6a32499a' // 发起hash
     },
     {
-        net: 'bsc',  // 目标链
-        tx: '0xd88b38dd5938552f613f661c0fae1518ad993f9a37c3488dd90abc1d435c937d' // 二次确认hash
+        net: 'polygon',  // 目标链
+        tx: '0xfba98c574f68510614113d75b600152620571fab329a3955c04b3697260b215f' // 二次确认hash
     }
 ]
 
@@ -93,7 +95,9 @@ async function main() {
     // console.log(destParams[0])
 
     try {
-        const destR = isCrossData ? destChain.web3.eth.abi.decodeParameters(CrossTransferWithDataTypes, destParams[0]) : destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, destParams[0]);
+        const destR = isCrossData ?
+            destChain.web3.eth.abi.decodeParameters(CrossTransferWithDataTypes, destParams[0])
+            : destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, destParams[0]);
         const keys = ['crossId', 'to', 'amount', 'fee', 'feeFlux', 'from', 'extData'];
         console.log('destR:', keys.reduce((t, name, i) => {
             (destR[i] && (t[name] = destR[i]), t);
@@ -101,6 +105,12 @@ async function main() {
         }, {}));
     } catch (e) {
         console.log("二次确认错误:", e)
+        const destR = destChain.web3.eth.abi.decodeParameters(CrossTransferTypes, destParams[0]);
+        const keys = ['crossId', 'to', 'amount', 'fee', 'feeFlux', 'from', 'extData'];
+        console.log('destR:', keys.reduce((t, name, i) => {
+            (destR[i] && (t[name] = destR[i]), t);
+            return t;
+        }, {}));
     }
 
     const destHash = destChain.web3.utils.keccak256(destParams[0]);
@@ -119,7 +129,7 @@ async function main() {
     //const ECCM = await ConfigC.methods.getEthCrossChainManager().call();
     //await gateway.methods.onCrossTransfer(destParams[0], destParams[1], destParams[2]).call({ from: ECCM });
 
-    const confirms = await gateway.methods.crossConfirms(srcHash).call(); // 1 hotpot 2 poly 3:hotpot+poly
+    const confirms = bn(await gateway.methods.crossConfirms(srcHash).call()); // 1 hotpot 2 poly 3:hotpot+poly
     console.log("confrim:", confirms.toString('hex'))
 
     //const tx = gateway.methods.dealPending(1);

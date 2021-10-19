@@ -24,6 +24,7 @@ const GasPirces = {
     "HECO": [400000, 2.5e9],
     "OEC": [400000, 0.1e9],
     "POLYGON": [1000000, 100e9],
+    "ARBITRUM": [500000, 3e9]
 }
 
 const func = async function (hre) {

@@ -46,6 +46,11 @@ module.exports = {
         network_id: '1666600000',       // Any network (default: none)
         skipDryRun: true,
     },
+    polygon_main: {
+        provider: () => new HDWalletProvider(PRIKEY, "https://polygon-rpc.com"),
+        network_id: '137',       // Any network (default: none)
+        skipDryRun: true,
+    },
     develop: {
         host: "127.0.0.1",
         port: 8545,
