@@ -24,6 +24,7 @@ npx hardhat compile
 
 ACTION=setGas
 
+#NETWORK=`net arbitrum` $ACTION
 NETWORK=`net polygon` $ACTION
 NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION

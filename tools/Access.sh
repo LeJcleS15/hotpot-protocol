@@ -17,7 +17,8 @@ net() {
 
 npx hardhat compile
 
+NETWORK=`net arbitrum` Balancer
 NETWORK=`net polygon` Balancer
-#NETWORK=`net ok` Balancer
-#NETWORK=`net heco` Balancer
-#NETWORK=`net bsc` Balancer
+NETWORK=`net ok` Balancer
+NETWORK=`net heco` Balancer
+NETWORK=`net bsc` Balancer
