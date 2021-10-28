@@ -22,6 +22,11 @@ module.exports = {
         network_id: 56,
         skipDryRun: true,
     },
+    arb_main: {
+        provider: () => new HDWalletProvider(PRIKEY, "https://arb1.arbitrum.io/rpc"),
+        network_id: 42161,
+        skipDryRun: true,
+    },
     ok_test: {
         provider: () => new HDWalletProvider(PRIKEY, `https://exchaintestrpc.okex.org`),
         network_id: "65",       // Ropsten's id

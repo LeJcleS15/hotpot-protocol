@@ -87,3 +87,10 @@ contract Config is OwnableUpgradeSafe, IConfig {
         router = _router;
     }
 }
+
+contract ConfigFix is Config {
+    function fix() external {
+        require(address(FLUX) == address(0), "FLUX exist");
+        FLUX = IERC20(0x2338a5d62E9A766289934e8d2e83a443e8065b83);
+    }
+}

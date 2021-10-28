@@ -7,14 +7,14 @@ const bn = n => new Web3.utils.BN(n);
 
 const NETENV = 'mainnet';
 //BSC->HECO:DAI
-const SYMBOL = 'USDT';
+const SYMBOL = 'DAI';
 const Chains = [
     {
-        net: 'heco',
-        tx: '0x18daf3eedabaae5aeecf340a92ef14a7dd3dc2c03360d6670729ab7dd6d2dd14'
+        net: 'ok',
+        tx: '0x9d58ee1042b3b464e2786c44f3327c410bd533fa7f7c4cf6e957675d056cec6b'
     },
     {
-        net: 'polygon'
+        net: 'arbitrum'
     }
 ]
 

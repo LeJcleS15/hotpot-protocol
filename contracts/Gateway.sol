@@ -407,7 +407,3 @@ contract Gateway is OwnableUpgradeSafe, CrossBase, IGateway {
         _onCrossTransferByRole(data, fromAddress, fromPolyId, Relayer.HOTPOT);
     }
 }
-
-interface GatewayOld {
-    function pendingLength() external view returns (uint256);
-}

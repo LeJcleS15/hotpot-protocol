@@ -16,6 +16,8 @@ net() {
 
 ACTION=status
 
-NETWORK=`net ok` $ACTION
 NETWORK=`net heco` $ACTION
 NETWORK=`net bsc` $ACTION
+NETWORK=`net arbitrum` $ACTION
+NETWORK=`net polygon` $ACTION
+NETWORK=`net ok` $ACTION
