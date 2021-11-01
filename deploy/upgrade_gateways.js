@@ -75,7 +75,7 @@ module.exports = async function (hre) {
       const gateway = gateways[symbol];
       //if (!(symbol == 'DAI' && chainName == 'HECO')) continue;
       console.log('token:', symbol, gateway);
-      const oldC = await ContractAt('GatewayOld', gateway)
+      const oldC = await ContractAt(Contract, gateway)
       const newC = await upgradeProxy(gateway, Contract);
     }
   }
