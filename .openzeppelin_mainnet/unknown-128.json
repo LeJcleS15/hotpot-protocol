@@ -2958,6 +2958,14 @@
           }
         }
       }
+    },
+    "fd2396522a124a26ff620d4435f741fefcd35e76a7a862e2c722edb76334a849": {
+      "address": "0x411f2a7ABb29530f9b6749Fe9C3d9065565b1879",
+      "txHash": "0x4e84c9ba5b47e832594b3c420c326933de39c126b048be81aaa8474a6b12e3f0",
+      "layout": {
+        "storage": [],
+        "types": {}
+      }
     }
   }
 }

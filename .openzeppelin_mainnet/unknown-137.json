@@ -1499,6 +1499,14 @@
           }
         }
       }
+    },
+    "fd2396522a124a26ff620d4435f741fefcd35e76a7a862e2c722edb76334a849": {
+      "address": "0xE5bbC1FaF1dD83251B2949c08dE53Ba86BFf4Fb8",
+      "txHash": "0x4553b21d7f5a2014f8867c2d41d22f05b7928d26f4ede200847a8e0a7cb7c49c",
+      "layout": {
+        "storage": [],
+        "types": {}
+      }
     }
   }
 }

@@ -4694,6 +4694,14 @@
           }
         }
       }
+    },
+    "fd2396522a124a26ff620d4435f741fefcd35e76a7a862e2c722edb76334a849": {
+      "address": "0x1F7820ac86E67f160C41fdb0914A7162675ea718",
+      "txHash": "0x703680f847f895962afb30383dc147ec45a24e4922aa4db1bd612a963e3905e7",
+      "layout": {
+        "storage": [],
+        "types": {}
+      }
     }
   }
 }
