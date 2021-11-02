@@ -70,11 +70,11 @@ module.exports = async function (hre) {
     const symbols = Object.keys(gateways);
     const chainName = chains._polyToName(remotePolyId);
     console.log('to:', i, chainName, remotePolyId);
+    if (chainName == "ARBITRUM") continue;
     for (let j = 0; j < symbols.length; j++) {
       const symbol = symbols[j];
       const gateway = gateways[symbol];
-      //if (!(symbol == 'DAI' && chainName == 'HECO')) continue;
-      console.log('token:', symbol, gateway);
+      console.log('token:', chainName, symbol, gateway);
       const oldC = await ContractAt(Contract, gateway)
       const newC = await upgradeProxy(gateway, Contract);
     }
