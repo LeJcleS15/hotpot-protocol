@@ -36,10 +36,19 @@ const func = async function (hre) {
             const remoteChainId = chains._toChainId(remoteId);
             const remoteGateways = record(hre.Record, undefined, undefined, remoteChainId)['Gateways'];
             const remoteGate = remoteGateways[polyId][tokenName];
-            console.log(tokenName, gate)
+            console.log(`${i}-${j} ${tokenName} ${chains._polyToName(polyId)}:${gate} <- ${chains._polyToName(remoteId)}:${remoteGate}`)
             const gateContract = await ContractAt('Gateway', gate);
-            await gateContract.bindGateway(remoteId, remoteGate);
-            console.log(`bind ${tokenName} ${polyId}:${gate} <- ${remoteId}:${remoteGate}`);
+            const remotePolyId = await gateContract.remotePolyId();
+            if (0 == remotePolyId) {
+                console.log('binding...')
+                await gateContract.bindGateway(remoteId, remoteGate);
+                console.log(`complete bind`);
+            } else {
+                const remoteGateway = await gateContract.remoteGateway();
+                if (remotePolyId != remoteId || remoteGateway != remoteGate) {
+                    throw `${remotePolyId} != ${remoteId} || ${remoteGateway} != ${remoteGate}`
+                }
+            }
         }
     }
 };

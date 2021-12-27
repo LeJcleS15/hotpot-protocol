@@ -1,6 +1,7 @@
 const record = require('../helps/record');
 const ChainsData = require('../helps/chains');
 
+const _ = undefined;
 
 Number.prototype.toAddress = function () {
     const hexStr = ethers.BigNumber.from(Number(this)).toHexString().slice(2);
@@ -10,6 +11,7 @@ Number.prototype.toAddress = function () {
 String.prototype.toAddress = Number.prototype.toAddress;
 
 function ContractAt(Contract, address) {
+    console.log('ContractAt:', Contract, address);
     return ethers.getSigners().then(
         account => ethers.getContractAt(
             Contract,
@@ -17,14 +19,6 @@ function ContractAt(Contract, address) {
             account[0]
         )
     );
-}
-
-const GasPirces = {
-    "BSC": [400000, 5e9],
-    "HECO": [400000, 2.5e9],
-    "OEC": [400000, 0.1e9],
-    "POLYGON": [1000000, 100e9],
-    "ARBITRUM": [500000, 2e9]
 }
 
 const func = async function (hre) {
@@ -37,17 +31,28 @@ const func = async function (hre) {
     const deployAcc = accounts[0].address;
     console.log(deployAcc);
 
-    const Deployed = record(hre.Record);
+    //const chains = ChainsData(hre.Chains);
     //const tokens = ChainsData(hre.Tokens);
 
-    const chains = ChainsData(hre.Chains);
+    const Deployed = record(hre.Record);
+    const testnet = hre.network.name.endsWith('_test');
+    const Contract = testnet ? 'ExtCallerTestnet' : 'ExtCaller';
+    const path = [Contract];
+    const deployed = record(hre.Record)._path(path);
+    if (deployed) return;
+    await deploy(Contract, {
+        from: deployAcc,
+        args: [Deployed.Config],
+        log: true,
+        deterministicDeployment: false,
+    });
+    const ExtCaller = await deployments.get(Contract);
+    console.log('ExtCaller', ExtCaller.address)
 
-    const router = await ContractAt('Router', Deployed.RouterV2);
-
-    const remotePolyIds = Object.keys(Deployed.Gateways);
-    const gases = remotePolyIds.map(polyId => GasPirces[chains._polyToName(polyId)]);
-    await router.setGas(remotePolyIds, gases.map(g => g[0]), gases.map(g => g[1]));
+    const Config = await ContractAt('Config', Deployed['Config']);
+    await Config.setCaller(ExtCaller.address);
+    record(hre.Record, ['ExtCaller'], ExtCaller.address, hre.chainId);
 };
 
 module.exports = func;
-func.tags = ['Gas'];
+func.tags = ['ExtCaller'];

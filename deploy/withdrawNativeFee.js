@@ -32,26 +32,13 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
 
-    const balancer = '0x99d29a9fb9493cf9e1bb99c556b87f7d495c2152';
-    const hotpoter = balancer;
-    const compromiser = balancer;//'0x383d66BbE5864653953c4E4121AB8b7531E75E04';
-    const Access = await ContractAt('Access', Deployed.Access);
-    if (!await Access.isBalancer(balancer)) {
-        console.log('setBalancer:', balancer)
-        await Access.setBalancer(balancer, true);
-    }
-    if (!await Access.isHotpoter(hotpoter)) {
-        console.log('setHotpoter:', hotpoter)
-        await Access.setHotpoter(hotpoter, true);
-    }
-    if (!await Access.isCompromiser(compromiser)) {
-        console.log('setCompromiser:', compromiser)
-        await Access.setCompromiser(compromiser, true);
-    }
-    console.log('isBalancer:', await Access.isBalancer(balancer));
-    console.log('isHotpoter:', await Access.isHotpoter(hotpoter));
-    console.log('isCompromiser:', await Access.isCompromiser(compromiser));
+    const chains = ChainsData(hre.Chains);
+
+    const router = await ContractAt('Router', Deployed.Router);
+    const relayer = '0x809814106B453dea026585BA2b9df52498A369Eb';
+    await router.setFeeCollector(relayer);
+
 };
 
 module.exports = func;
-func.tags = ['Balancer'];
+func.tags = ['withdrawNativeFee'];

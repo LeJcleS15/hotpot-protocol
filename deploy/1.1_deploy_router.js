@@ -11,6 +11,7 @@ Number.prototype.toAddress = function () {
 String.prototype.toAddress = Number.prototype.toAddress;
 
 function ContractAt(Contract, address) {
+    console.log('ContractAt:', Contract, address);
     return ethers.getSigners().then(
         account => ethers.getContractAt(
             Contract,
@@ -30,6 +31,10 @@ const func = async function (hre) {
     const deployAcc = accounts[0].address;
     console.log(deployAcc);
 
+    const path = ['RouterV3'];
+    const deployed = record(hre.Record)._path(path);
+    if (deployed) return;
+
     const chains = ChainsData(hre.Chains);
     //const tokens = ChainsData(hre.Tokens);
     const oracle = chains.Oracle;
@@ -37,7 +42,7 @@ const func = async function (hre) {
 
     await deploy('Router', {
         from: deployAcc,
-        args: [oracle, polyId.toAddress()],
+        args: [],
         log: true,
         deterministicDeployment: false,
     });
@@ -45,7 +50,7 @@ const func = async function (hre) {
     const router = await deployments.get('Router');
     console.log('Router', router.address)
 
-    record(hre.Record, ['RouterV2'], router.address, hre.chainId);
+    record(hre.Record, path, router.address, hre.chainId);
 };
 
 module.exports = func;

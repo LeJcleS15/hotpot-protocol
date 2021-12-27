@@ -14,6 +14,8 @@ import {IEthCrossChainManagerProxy} from "./interfaces/poly/IEthCrossChainManage
 import {IPriceOracle} from "./interfaces/IPriceOracle.sol";
 import {IConfig} from "./interfaces/IConfig.sol";
 
+import {IExtCaller} from "./interfaces/IExtCaller.sol";
+
 contract Config is OwnableUpgradeSafe, IConfig {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -23,9 +25,8 @@ contract Config is OwnableUpgradeSafe, IConfig {
     address public router;
     IPriceOracle public oracle;
     mapping(address => address) public override boundVault; // gateway=>vaults
-    uint256 public constant OEC_CHAIN_ID = 66;
-    uint256 public constant HECO_CHAIN_ID = 128;
-    uint256 public constant BSC_CHAIN_ID = 56;
+    IExtCaller public override extCaller;
+    mapping(uint64 => uint256) public crossFee;
 
     function initialize(
         IEthCrossChainManagerProxy _ccmp,
@@ -42,21 +43,12 @@ contract Config is OwnableUpgradeSafe, IConfig {
         router = _router;
     }
 
-    function getChainID() public pure returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
+    function isRouter(address _router) external view override returns (bool) {
+        return _router == router;
     }
 
-    function isRouter(address _router) external view override returns (bool) {
-        address oldRouter;
-        uint256 chainId = getChainID();
-        if (chainId == BSC_CHAIN_ID) oldRouter = 0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901;
-        else if (chainId == HECO_CHAIN_ID) oldRouter = 0x1E6C2D90Eb956bD8bd0F804B2D5d0dc035E602Fd;
-        else if (chainId == OEC_CHAIN_ID) oldRouter = 0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901;
-        return _router == oldRouter || _router == router;
+    function isCompromiser(address compromiser) external view override returns (bool) {
+        return access.isCompromiser(compromiser);
     }
 
     function isBalancer(address balancer) external view override returns (bool) {
@@ -79,30 +71,29 @@ contract Config is OwnableUpgradeSafe, IConfig {
         return (oracle.getPriceMan(token), oracle.getPriceMan(address(FLUX)));
     }
 
-    function feeFlux(address token, uint256 fee) external view override returns (uint256) {
-        uint256 _feePrice = oracle.getPriceMan(token);
-        uint256 fluxPrice = oracle.getPriceMan(address(FLUX));
-        uint8 tokenDecimals = ERC20UpgradeSafe(token).decimals();
-        uint8 fluxDecimals = ERC20UpgradeSafe(address(FLUX)).decimals();
-        uint256 _feeFlux = fee.mul(10**uint256(fluxDecimals - tokenDecimals)).mul(_feePrice).div(fluxPrice);
-        return (_feeFlux * 80) / 100;
+    function feeFlux(uint64 toPolyId) external view override returns (uint256) {
+        return feeToken(toPolyId, address(FLUX)).mul(80).div(100);
     }
-}
 
-contract ConfigFix is Config {
-    function fix() external {
-        require(getChainID() == OEC_CHAIN_ID, "only OEC");
-        require(address(oracle) == 0x21a276b169F51A0725dbc708C09eA7e1C4D94488, "oracle check");
-        oracle = IPriceOracle(0xd249C5D313Bfe6c57Da0AA6cc9Db5F87cBC137a3);
+    function feeToken(uint64 toPolyId, address token) public view override returns (uint256) {
+        uint256 _crossFee = crossFee[toPolyId];
+        uint256 tokenPrice = oracle.getPriceMan(token);
+        return _crossFee.mul(1e18).div(tokenPrice);
+    }
+
+    function setCaller(IExtCaller _caller) external onlyOwner {
+        extCaller = _caller;
     }
 
     function setRouter(address _router) external onlyOwner {
-        address oldRouter;
-        uint256 chainId = getChainID();
-        if (chainId == BSC_CHAIN_ID) oldRouter = 0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901;
-        else if (chainId == HECO_CHAIN_ID) oldRouter = 0x1E6C2D90Eb956bD8bd0F804B2D5d0dc035E602Fd;
-        else if (chainId == OEC_CHAIN_ID) oldRouter = 0x87d2aB3c3f355b68d84eAB1cf03E6bC838Bc2901;
-        require(router == oldRouter && oldRouter != address(0), "old router cehck");
         router = _router;
+    }
+
+    function setCrossFee(uint64[] calldata polyIds, uint256[] calldata fees) external onlyOwner {
+        for (uint256 i = 0; i < polyIds.length; i++) {
+            uint64 polyId = polyIds[i];
+            uint256 fee = fees[i];
+            crossFee[polyId] = fee;
+        }
     }
 }

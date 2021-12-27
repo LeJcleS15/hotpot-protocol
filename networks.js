@@ -1,6 +1,6 @@
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 const fs = require('fs');
-const PRIKEY = fs.readFileSync(".secret").toString().trim();
+const PRIKEY = process.env.PRIKEY;//fs.readFileSync(".secret").toString().trim();
 module.exports = {
     heco_test: {
         provider: () => new HDWalletProvider(PRIKEY, "https://http-testnet.hecochain.com"),
@@ -20,6 +20,11 @@ module.exports = {
     bsc_main: {
         provider: () => new HDWalletProvider(PRIKEY, "https://bsc-dataseed.binance.org"),
         network_id: 56,
+        skipDryRun: true,
+    },
+    arb_main: {
+        provider: () => new HDWalletProvider(PRIKEY, "https://arb1.arbitrum.io/rpc"),
+        network_id: 42161,
         skipDryRun: true,
     },
     ok_test: {
@@ -44,6 +49,11 @@ module.exports = {
     hmy_main: {
         provider: () => new HDWalletProvider(PRIKEY, "https://api.s0.t.hmny.io"),
         network_id: '1666600000',       // Any network (default: none)
+        skipDryRun: true,
+    },
+    polygon_main: {
+        provider: () => new HDWalletProvider(PRIKEY, "https://polygon-rpc.com"),
+        network_id: '137',       // Any network (default: none)
         skipDryRun: true,
     },
     develop: {

@@ -19,6 +19,12 @@ function ContractAt(Contract, address) {
     );
 }
 
+const GasPirces = {
+    "BSC": [400000, 5e9],
+    "HECO": [400000, 2.5e9],
+    "OEC": [400000, 0.1e9],
+}
+
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
@@ -32,26 +38,16 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
 
-    const balancer = '0x99d29a9fb9493cf9e1bb99c556b87f7d495c2152';
-    const hotpoter = balancer;
-    const compromiser = balancer;//'0x383d66BbE5864653953c4E4121AB8b7531E75E04';
-    const Access = await ContractAt('Access', Deployed.Access);
-    if (!await Access.isBalancer(balancer)) {
-        console.log('setBalancer:', balancer)
-        await Access.setBalancer(balancer, true);
-    }
-    if (!await Access.isHotpoter(hotpoter)) {
-        console.log('setHotpoter:', hotpoter)
-        await Access.setHotpoter(hotpoter, true);
-    }
-    if (!await Access.isCompromiser(compromiser)) {
-        console.log('setCompromiser:', compromiser)
-        await Access.setCompromiser(compromiser, true);
-    }
-    console.log('isBalancer:', await Access.isBalancer(balancer));
-    console.log('isHotpoter:', await Access.isHotpoter(hotpoter));
-    console.log('isCompromiser:', await Access.isCompromiser(compromiser));
+    const chains = ChainsData(hre.Chains);
+
+    console.log("Router at RouterV2", Deployed.RouterV2)
+    const routerV2 = await ContractAt('Router', Deployed.RouterV2);
+    //const router = await ContractAt('Router', Deployed.Router);
+
+    console.log("RouterV2 unpause,", await routerV2.owner())
+    await routerV2.unpause();
+    //await routerV2.pause();
 };
 
 module.exports = func;
-func.tags = ['Balancer'];
+func.tags = ['Paused'];

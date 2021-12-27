@@ -4,6 +4,7 @@ const hre = require('hardhat');
 const { ethers, upgrades } = hre;
 
 function ContractAt(Contract, address) {
+  console.log('ContractAt:', Contract, address);
   return ethers.getSigners().then(
     account => ethers.getContractAt(
       Contract,

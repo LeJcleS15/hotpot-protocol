@@ -1,10 +1,11 @@
 set -e
 
-status() {
+FixedGas() {
     echo "\n"
     echo "--------------------"$NETENV $NETWORK
-    yarn tags Check
+    yarn tags FixedGas
 }
+
 
 net() {
     if [ "$NETENV" == "MAINNET" ];then
@@ -14,10 +15,13 @@ net() {
     fi
 }
 
-ACTION=status
+npx hardhat compile
 
-NETWORK=`net heco` $ACTION
-NETWORK=`net bsc` $ACTION
-NETWORK=`net arbitrum` $ACTION
-NETWORK=`net polygon` $ACTION
+
+ACTION=FixedGas
+
+#NETWORK=`net arbitrum` $ACTION
+#NETWORK=`net polygon` $ACTION
 NETWORK=`net ok` $ACTION
+#NETWORK=`net heco` $ACTION
+NETWORK=`net bsc` $ACTION

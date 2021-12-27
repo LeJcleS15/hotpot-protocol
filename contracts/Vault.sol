@@ -31,7 +31,7 @@ abstract contract RewardDistributor {
 
     function updateIncome(uint256 feeFlux, uint256 totalShares) internal {
         uint256 reserved = totalShares == 0 ? feeFlux : feeFlux.mul(RESERVED_POINT).div(RESERVED_DENOM);
-        uint256 remain = feeFlux.sub(reserved);
+        uint256 remain = feeFlux.sub(reserved); // if `totalShares` is zero, `remain` is also zero
         if (remain > 0) {
             uint256 deltaPerShare = remain.mul(PER_SHARE_SACLE).div(totalShares);
             rewardFluxPerShareStored = rewardFluxPerShareStored.add(deltaPerShare);
@@ -116,21 +116,13 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         config.FLUX().safeTransfer(msg.sender, reward);
     }
 
-    function borrowToken(uint256 amount) private returns (bool) {
-        IFToken _ftoken = ftoken;
-        if (address(_ftoken) != address(0)) {
-            uint256 before = token.balanceOf(address(this));
-            // should tranfer token to user
-            // 忽略执行成功与否
-            address(_ftoken).call(abi.encodeWithSelector(_ftoken.borrow.selector, amount));
-            return token.balanceOf(address(this)) == before.add(amount);
-        }
-        return false;
+    function _borrowToken(uint256 amount) private {
+        ftoken.borrow(amount);
     }
 
-    function repayToken() public {
+    function repayToken() external {
         IFToken _ftoken = ftoken;
-        if (address(_ftoken) == address(0)) return;
+        //if (address(_ftoken) == address(0)) return;
 
         uint256 debt = _ftoken.borrowBalanceOf(address(this));
         if (debt == 0) return;
@@ -152,12 +144,9 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
         GateDebt storage debt = gateDebt[msg.sender];
         debt.debt = debt.debt.sub(int256(amount.add(fee)));
         uint256 cash = token.balanceOf(address(this));
-        if (cash >= amount) {
-            token.safeTransfer(to, amount);
-        } else {
-            require(borrowToken(amount - cash), "borrow failed");
-            token.safeTransfer(to, amount);
-        }
+        if (cash < amount) _borrowToken(amount - cash);
+        token.safeTransfer(to, amount);
+
         uint256 totalShares = ERC20UpgradeSafe.totalSupply();
         if (fee > 0) {
             uint256 reserved = totalShares == 0 ? fee : fee.mul(RewardDistributor.RESERVED_POINT).div(RewardDistributor.RESERVED_DENOM);
@@ -224,11 +213,6 @@ contract Vault is OwnableUpgradeSafe, ERC20UpgradeSafe, IVault, RewardDistributo
 
     function withdraw(uint256 share) external {
         _withdraw(msg.sender, share);
-    }
-
-    function depositReserved(uint256 amount) external {
-        config.FLUX().safeTransferFrom(msg.sender, address(this), amount);
-        RewardDistributor.reservedFeeFlux = RewardDistributor.reservedFeeFlux.add(amount);
     }
 
     function withdrawReserved(address to) external onlyOwner {

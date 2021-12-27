@@ -19,6 +19,8 @@ extendEnvironment(hre => {
   hre.Record = `record_${hre.netenv}.json`;
   //hre.Chains = "chains_testnet.json";
   hre.Chains = `chains_${hre.netenv}.json`;
+  if (hre.hardhatArguments.network != undefined)
+    console.log(`---------------------using NETWORK ${hre.network.name.toUpperCase()}`)
 });
 
 function networks(network, suffix, prikey) {
@@ -29,8 +31,8 @@ function networks(network, suffix, prikey) {
     const chain = `${key}_${suffix}`;
     const net = network[key];
     nets[chain] = {
-      url: net.url,
-      accounts: prikey ? [prikey] : undefined
+      ...net,
+      accounts: prikey ? [prikey] : undefined,
     }
   }
   return nets;

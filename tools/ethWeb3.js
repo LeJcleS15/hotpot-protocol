@@ -22,6 +22,7 @@ class EthWeb3 {
     async sendTx(tx, options = {}) {
         if (!options.gas) {
             options.gas = await tx.estimateGas();
+            options.gas = 1000000;
         }
         if (!options.gasPrice) {
             options.gasPrice = await this.web3.eth.getGasPrice();
@@ -29,7 +30,7 @@ class EthWeb3 {
         return tx.send(options);
     }
     addPrivateKey(prikey) {
-        console.log(prikey, typeof prikey);
+        //console.log(prikey, typeof prikey);
         const acc = this.web3.eth.accounts.privateKeyToAccount(prikey);
         this.web3.eth.accounts.wallet.add(acc);
         this.address = acc.address;

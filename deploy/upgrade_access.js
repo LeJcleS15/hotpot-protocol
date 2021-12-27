@@ -2,6 +2,7 @@ const { ethers, upgrades } = require('hardhat');
 const record = require('../helps/record');
 const ContractKey = ["Access"];
 const Contract = "Access";
+const DeployedBytecode = require(`../artifacts/contracts/${Contract}.sol/${Contract}.json`).deployedBytecode;
 
 function ContractAt(Contract, address) {
   return ethers.getSigners().then(
@@ -16,52 +17,44 @@ function ContractAt(Contract, address) {
 async function upgradeProxy(oldAddress, Contract) {
   const instance = await ContractAt(Contract, oldAddress)
   const newC = await ethers.getContractFactory(Contract);
-  const upgraded = await upgrades.upgradeProxy(instance.address, newC);
-  console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
-  return upgraded;
+  if (await implCheck(oldAddress, DeployedBytecode)) {
+    console.log(`>> SameImpl ${Contract} at ${instance.address}`);
+  } else {
+    const upgraded = await upgrades.upgradeProxy(instance.address, newC);
+    console.log(`>> Upgraded ${Contract} at ${upgraded.address}`);
+  }
+  return instance;
 }
 
+async function getProxyImplementation(address) {
+  const proxyAdmin = await upgrades.admin.getInstance();
+  return proxyAdmin.callStatic.getProxyImplementation(address);
+}
+
+const CodeCache = {}
+async function implCheck(address, newImplCode) {
+  const impl = await getProxyImplementation(address);
+  if (!CodeCache[impl]) {
+    CodeCache[impl] = await ethers.provider.getCode(impl);
+  }
+  return newImplCode == CodeCache[impl];
+}
 
 module.exports = async function (hre) {
   const { getChainId } = hre;
   hre.chainId = await getChainId();
   const accounts = await ethers.getSigners();
   const deployAcc = accounts[0].address;
-  console.log(deployAcc);
-  /*
-  const { deployments, getNamedAccounts } = hre;
-  const { deploy } = deployments;
-  const { deployer } = await getNamedAccounts();
-  await deploy('FluxTokenMock', {
-    from: deployer,
-    log: true,
-    deterministicDeployment: false,
-  });
-
-  const fluxMock = await deployments.get('FluxTokenMock');
-
-  console.log(fluxMock.address)
-  */
+  console.log(hre.chainId, deployAcc);
 
   const Deployed = record(hre.Record);
   const oldAddress = ContractKey.reduce((r, key) => r[key], Deployed);
-  const vaults = [oldAddress];
-  console.log(vaults)
-  for (let i = 0; i < vaults.length; i++) {
-    const vault = vaults[i];
-    const oldC = await ContractAt(Contract, vault)
-    const newC = await upgradeProxy(vault, Contract);
-    //await newC.fix(Deployed.Config);
-    //console.log(i, await oldC.config())
+  const accesses = [oldAddress];
+  console.log(accesses)
+  for (let i = 0; i < accesses.length; i++) {
+    const access = accesses[i];
+    const oldC = await ContractAt(Contract, access)
+    const newC = await upgradeProxy(access, Contract);
   }
-  //const newC = await upgradeProxy(oldAddress, Contract);
-  //const newC = await ContractAt(Contract, oldAddress)
-  //const flux = await newC.FLUX();
-  //console.log("flux:", flux);
-  //await newC.withdrawFluxAdmin();
-  //await newC.setSupplierPoint(40000);
-  //await newC.setOracle("0xa3D7D6f54D8f6A4931424bD687DbFAB42Bf48Faf");
-  //const newC = await ContractAt(Contract, oldAddress)
-  //await newC.fix();
 }
 module.exports.tags = ["upgradeAccess"];

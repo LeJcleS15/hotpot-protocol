@@ -15,9 +15,10 @@ net() {
     fi
 }
 
-export NETENV=MAINNET
 npx hardhat compile
 
+NETWORK=`net arbitrum` Balancer
+NETWORK=`net polygon` Balancer
 NETWORK=`net ok` Balancer
 NETWORK=`net heco` Balancer
 NETWORK=`net bsc` Balancer

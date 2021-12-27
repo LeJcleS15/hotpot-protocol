@@ -1,7 +1,6 @@
 const record = require('../helps/record');
 const ChainsData = require('../helps/chains');
 
-
 Number.prototype.toAddress = function () {
     const hexStr = ethers.BigNumber.from(Number(this)).toHexString().slice(2);
     const pad = 40 - hexStr.length;
@@ -19,6 +18,15 @@ function ContractAt(Contract, address) {
     );
 }
 
+const u1e17 = ethers.utils.parseUnits('0.1', 18);
+const GasFixFee = {
+    "BSC": [u1e17],
+    "HECO": [u1e17],
+    "OEC": [u1e17],
+    "POLYGON": [u1e17],
+    "ARBITRUM": [u1e17]
+}
+
 const func = async function (hre) {
     const { deployments, ethers } = hre;
     const { deploy } = deployments;
@@ -32,26 +40,20 @@ const func = async function (hre) {
     const Deployed = record(hre.Record);
     //const tokens = ChainsData(hre.Tokens);
 
-    const balancer = '0x99d29a9fb9493cf9e1bb99c556b87f7d495c2152';
-    const hotpoter = balancer;
-    const compromiser = balancer;//'0x383d66BbE5864653953c4E4121AB8b7531E75E04';
-    const Access = await ContractAt('Access', Deployed.Access);
-    if (!await Access.isBalancer(balancer)) {
-        console.log('setBalancer:', balancer)
-        await Access.setBalancer(balancer, true);
+    const chains = ChainsData(hre.Chains);
+
+    const configC = await ContractAt('Config', Deployed.Config);
+
+    const remotePolyIds = Object.keys(Deployed.Gateways);
+    const gases = remotePolyIds.map(polyId => GasFixFee[chains._polyToName(polyId)]);
+    console.log(remotePolyIds, gases);
+    //return;
+    for (let polyId of remotePolyIds) {
+        console.log(polyId)
+        console.log("price:", polyId, await configC.crossFee(polyId))
     }
-    if (!await Access.isHotpoter(hotpoter)) {
-        console.log('setHotpoter:', hotpoter)
-        await Access.setHotpoter(hotpoter, true);
-    }
-    if (!await Access.isCompromiser(compromiser)) {
-        console.log('setCompromiser:', compromiser)
-        await Access.setCompromiser(compromiser, true);
-    }
-    console.log('isBalancer:', await Access.isBalancer(balancer));
-    console.log('isHotpoter:', await Access.isHotpoter(hotpoter));
-    console.log('isCompromiser:', await Access.isCompromiser(compromiser));
+    //await configC.setCrossFee(remotePolyIds, gases.map(g => g[0]));
 };
 
 module.exports = func;
-func.tags = ['Balancer'];
+func.tags = ['FixedGas'];
